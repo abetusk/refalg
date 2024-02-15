@@ -24,7 +24,7 @@
 typedef struct ravl_node_type {
 
 #ifdef RAVL_DEBUG
-  std::string name;
+  //std::string name;
 #endif
 
   // balance factr (delta height)

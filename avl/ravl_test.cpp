@@ -53,10 +53,17 @@ void _node_print(ravl_node_t *node) {
   data64_t *d;
   d = (data64_t *)node->data;
 
+  printf("{%p} dh:%i, k:%i, v:%i\n",
+      node,
+      node->dh,
+      (int)d->key, (int)d->value);
+
+  /*
   printf("(%s){%p} dh:%i, k:%i, v:%i\n",
       node->name.c_str(), node,
       node->dh,
       (int)d->key, (int)d->value);
+      */
 }
 
 int test_ins() {

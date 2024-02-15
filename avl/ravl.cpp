@@ -9,7 +9,7 @@
 
 #include "ravl.hpp"
 
-#include "dulux.h"
+//#include "dulux.h"
 
 ravl_node_t *ravl_create(ravl_node_t *parent,
                          void *data) {
@@ -28,8 +28,8 @@ ravl_node_t *ravl_create(ravl_node_t *parent,
 
   node->data = data;
 
-  idx = rand() % str_dulux_n[0];
-  node->name = str_dulux[idx];
+  //idx = rand() % str_dulux_n[0];
+  //node->name = str_dulux[idx];
 
   return node;
 }
@@ -63,13 +63,12 @@ int RAVL::print_r(ravl_node_t *node, int lvl) {
   if (m_node_print) { m_node_print(node); }
 
   for (i=0; i<lvl; i++) { printf(" "); }
-  //printf("%p dh:%i, {p:%p,l:%p,r:%p}\n", node, node->dh, node->p, node->l, node->r);
-  printf("'%s'{%p} dh:%i, {l:'%s'{%p},r:'%s'{%p},p:'%s'{%p}}\n",
-      node->name.c_str(), node, node->dh,
-      node->l ? node->l->name.c_str() : "", node->l,
-      node->r ? node->r->name.c_str() : "", node->r,
-      node->p ? node->p->name.c_str() : "", node->p);
-
+  printf("%p dh:%i, {p:%p,l:%p,r:%p}\n", node, node->dh, node->p, node->l, node->r);
+  //printf("'%s'{%p} dh:%i, {l:'%s'{%p},r:'%s'{%p},p:'%s'{%p}}\n",
+  //    node->name.c_str(), node, node->dh,
+  //    node->l ? node->l->name.c_str() : "", node->l,
+  //    node->r ? node->r->name.c_str() : "", node->r,
+  //    node->p ? node->p->name.c_str() : "", node->p);
 
   print_r(node->l, lvl+1);
   print_r(node->r, lvl+1);
@@ -210,10 +209,10 @@ int RAVL::retrace(ravl_node_t *node, int8_t dT) {
 
   //DEBUG
   //printf("retrace: n:%p dh:%i (dT:%i)\n", node, node->dh, dT);
-  printf("retrace: n:'%s'{%p} dh:%i (dT:%i)\n", node->name.c_str(), node, node->dh, dT);
-  printf("\n=-=-=-=sub-tree=-=-=-=\n");
-  print_tree_r(node, 2);
-  printf("=-=-=-=sub-tree=-=-=-=\n\n");
+  //printf("retrace: n:'%s'{%p} dh:%i (dT:%i)\n", node->name.c_str(), node, node->dh, dT);
+  //printf("\n=-=-=-=sub-tree=-=-=-=\n");
+  //print_tree_r(node, 2);
+  //printf("=-=-=-=sub-tree=-=-=-=\n\n");
 
 
   // If we've deleted a node (dT < 0) and
@@ -290,10 +289,10 @@ int RAVL::retrace(ravl_node_t *node, int8_t dT) {
 
   //DEBUG
   //printf("  ...node(%p)->dh: %i (dT:%i)\n", node, node->dh, dT);
-  printf("  ...node('%s'{%p})->dh: %i (dT:%i)\n", node->name.c_str(), node, node->dh, dT);
-  printf("====\n");
-  print_r(node, 2);
-  printf("====\n\n");
+  //printf("  ...node('%s'{%p})->dh: %i (dT:%i)\n", node->name.c_str(), node, node->dh, dT);
+  //printf("====\n");
+  //print_r(node, 2);
+  //printf("====\n\n");
 
 
   // left heavy (--)
@@ -309,7 +308,7 @@ int RAVL::retrace(ravl_node_t *node, int8_t dT) {
     if (l_dh == 1) {
 
       //DEBUG
-      printf("  doublerot -- +: node(%p)->dh: %i (dT:%i)\n", node, node->dh, dT);
+      //printf("  doublerot -- +: node(%p)->dh: %i (dT:%i)\n", node, node->dh, dT);
 
       x = node;
       y = x->l;
@@ -372,7 +371,7 @@ int RAVL::retrace(ravl_node_t *node, int8_t dT) {
     //
 
     //DEBUG
-    printf("  simplerot -- {-,0}: node(%p)->dh: %i (dT:%i)\n", node, node->dh, dT);
+    //printf("  simplerot -- {-,0}: node(%p)->dh: %i (dT:%i)\n", node, node->dh, dT);
 
     xu_dh = ((l_dh == 0) ? -1 :  0);
     yu_dh = ((l_dh == 0) ?  1 :  0);
@@ -436,19 +435,19 @@ int RAVL::retrace(ravl_node_t *node, int8_t dT) {
   if (r_dh == -1) {
 
     // DEBUG
-    printf("  doublerot ++ -\n");
+    //printf("  doublerot ++ -\n");
 
     x = node;
     y = x->r;
     z = y->l;
 
     //DEBUG
-    printf("    x(dh:%i):%s\n", x->dh, x->name.c_str());
-    printf("     \\\n");
-    printf("      y(dh:%i):%s\n", y->dh, y->name.c_str());
-    printf("     /\n");
-    printf("    z(dh:%i):%s\n", z->dh, z->name.c_str());
-    printf("\n");
+    //printf("    x(dh:%i):%s\n", x->dh, x->name.c_str());
+    //printf("     \\\n");
+    //printf("      y(dh:%i):%s\n", y->dh, y->name.c_str());
+    //printf("     /\n");
+    //printf("    z(dh:%i):%s\n", z->dh, z->name.c_str());
+    //printf("\n");
 
 
     alpha = x->l;
@@ -515,7 +514,7 @@ int RAVL::retrace(ravl_node_t *node, int8_t dT) {
 
   //DEBUG
   //printf("  simplerot ++ {0,+} r_dh:%i dh(x':%i, y':%i, p':%i)\n", r_dh, xu_dh, yu_dh, pu_dh);
-  printf("  simplerot ++ {0,+} r_dh:%i dh(x':%i, y':%i)\n", r_dh, xu_dh, yu_dh);
+  //printf("  simplerot ++ {0,+} r_dh:%i dh(x':%i, y':%i)\n", r_dh, xu_dh, yu_dh);
 
   x = node;
   y = node->r;
@@ -626,9 +625,9 @@ int RAVL::add(void *kd) {
 
     //DEBUG
     //printf("add<: node:%p dh:%i (p:%p)\n", node, node->dh, node->p);
-    printf("add<: adding '%s'{%p} under node:'%s'%p dh:%i (p:%p)\n",
-        nn->name.c_str(), nn,
-        node->name.c_str(), node, node->dh, node->p);
+    //printf("add<: adding '%s'{%p} under node:'%s'%p dh:%i (p:%p)\n",
+    //    nn->name.c_str(), nn,
+    //    node->name.c_str(), node, node->dh, node->p);
   }
   else {
     node->r = nn;
@@ -638,9 +637,9 @@ int RAVL::add(void *kd) {
 
     //DEBUG
     //printf("add>: node:%p dh:%i (p:%p)\n", node, node->dh, node->p);
-    printf("add>: adding '%s'{%p} under node:'%s'{%p} dh:%i (p:%p)\n",
-        nn->name.c_str(), nn,
-        node->name.c_str(), node, node->dh, node->p);
+    //printf("add>: adding '%s'{%p} under node:'%s'{%p} dh:%i (p:%p)\n",
+    //    nn->name.c_str(), nn,
+    //    node->name.c_str(), node, node->dh, node->p);
   }
 
 
@@ -650,10 +649,10 @@ int RAVL::add(void *kd) {
   }
 
   //DEBUG
-  printf("add finished...starting retrace\n");
-  printf("\nvvv (tree in intermediate state)\n");
-  print_r(m_root, 0);
-  printf("^^^ (tree in intermediate state)\n\n");
+  //printf("add finished...starting retrace\n");
+  //printf("\nvvv (tree in intermediate state)\n");
+  //print_r(m_root, 0);
+  //printf("^^^ (tree in intermediate state)\n\n");
 
   // handle any rebalancing that needs
   // to be done
@@ -702,9 +701,7 @@ int RAVL::del(void *dkey) {
   if (c!=0) { return -2; }
 
   //DEBUG
-  printf("del, found node('%s'{%p})\n", node->name.c_str(), node);
-
-
+  //printf("del, found node('%s'{%p})\n", node->name.c_str(), node);
 
 
   if ((node->l) && (node->r)) {
@@ -720,8 +717,7 @@ int RAVL::del(void *dkey) {
     y->dh = x->dh;
 
     //DEBUG
-    printf("del 2child, y=succ(x):'%s'{%p}\n", y->name.c_str(), y);
-    fflush(stdout);
+    //printf("del 2child, y=succ(x):'%s'{%p}\n", y->name.c_str(), y);
 
     // perform surgery to
     // take out y and put
@@ -766,8 +762,8 @@ int RAVL::del(void *dkey) {
 
       p_y->dh = p_dh + dir_dh;
 
-      printf("updating dh for '%s'(%p) (%i), dh now: %i\n",
-          p_y->name.c_str(), p_y, dT, p_y->dh);
+      //printf("updating dh for '%s'(%p) (%i), dh now: %i\n",
+      //    p_y->name.c_str(), p_y, dT, p_y->dh);
 
     }
 
@@ -782,8 +778,7 @@ int RAVL::del(void *dkey) {
   //
 
   //DEBUG
-  printf("del {0,1}child\n");
-  fflush(stdout);
+  //printf("del {0,1}child\n");
 
   p = node->p;
   node_child = NULL;
