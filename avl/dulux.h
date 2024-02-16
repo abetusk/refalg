@@ -4,7 +4,7 @@
 // to this file.
 //
 // You should have received a copy of the CC0 legalcode along with this
-// work.  If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
+// work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 //
 
 int str_dulux_n[2] = { 4224 , 27 };

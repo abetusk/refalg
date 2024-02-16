@@ -4,23 +4,36 @@
 // to this file.
 //
 // You should have received a copy of the CC0 legalcode along with this
-// work.  If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
+// work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 //
 
 #include "ravl.hpp"
 
+#define RAVL_C_MEM_ALLOC
+
 //#include "dulux.h"
 
+// user is in charge of memory management for
+// data.
+// m_free for data
+// will be called when this node is deleted
+// User is expected to allocate data before
+// adding or calling this function, this will
+// only assign the ravl_node_t it's data.
+//
 ravl_node_t *ravl_create(ravl_node_t *parent,
                          void *data) {
   static int idx=0;
   ravl_node_t *node;
 
-  //node = (ravl_node_t *)malloc(sizeof(ravl_node_t));
+#ifdef RAVL_C_MEM_ALLOC
+  node = (ravl_node_t *)malloc(sizeof(ravl_node_t));
+#else
   node = new ravl_node_t ;
+#endif
 
   node->dh = 0;
-  node->depth = 0;
+  //node->depth = 0;
 
   node->p = parent;
   node->l = NULL;
@@ -35,7 +48,11 @@ ravl_node_t *ravl_create(ravl_node_t *parent,
 }
 
 void ravl_node_free(ravl_node_t *node) {
+#ifdef RAVL_C_MEM_ALLOC
+  free(node);
+#else
   delete node;
+#endif
 }
 
 void RAVL::print_tree_r(ravl_node_t *node, int lvl) {
@@ -64,11 +81,6 @@ int RAVL::print_r(ravl_node_t *node, int lvl) {
 
   for (i=0; i<lvl; i++) { printf(" "); }
   printf("%p dh:%i, {p:%p,l:%p,r:%p}\n", node, node->dh, node->p, node->l, node->r);
-  //printf("'%s'{%p} dh:%i, {l:'%s'{%p},r:'%s'{%p},p:'%s'{%p}}\n",
-  //    node->name.c_str(), node, node->dh,
-  //    node->l ? node->l->name.c_str() : "", node->l,
-  //    node->r ? node->r->name.c_str() : "", node->r,
-  //    node->p ? node->p->name.c_str() : "", node->p);
 
   print_r(node->l, lvl+1);
   print_r(node->r, lvl+1);
@@ -162,8 +174,6 @@ int RAVL::consistency_check() {
 
 //---
 
-// WIP!!!!!!
-//
 // recursively go up and rebalnce the tree,
 // making sure to call the user specified
 // calback on nodes that have finished processing
@@ -171,34 +181,31 @@ int RAVL::consistency_check() {
 //
 // node dh has alredy been updated by the time
 // we get here.
-// dT holds the change in subtree height
+// dT holds the change in subtree height,
+// -1 for reduction in height (deletion), +1
+// for addition.
 //
 // some comments:
 //
 // - dT is the comunication of the height change
 //   from subtree
-// - dT should be {-1,0,1}
-// - if the current node goes from -1 -> 0 or 1 -> 0,
-//   this height change effectively gets absorbed
-// - if there's a height change, dT going up the tree
-//   needs to have the appropriate sign
+// - dT should be {-1,0,1}, {-1,0} for del, {0,1} for add
+// - The nodes dh (balance factor) in addition to dT
+//   gives us enough information to know how to
+//   modify the dh (balance factor) of the parent
+//   and what height change to recursively pass up
+//   the tree.
 //
+// return:
 //
-// dT should be the signal, passed in from subtrees below,
-// whether the height has increased, decreased or stayed the
-// same.
-// For insertion, this should only ever by {0,1}, for deletion,
-// this should only every be {-1,0}.
+//  0 : success
 //
 int RAVL::retrace(ravl_node_t *node, int8_t dT) {
   int r = 0;
   int32_t del_h;
   int8_t l_dh=0, r_dh=0,
-         xu_dh=0,
-         yu_dh=0,
-         zu_dh=0,
-         pu_dh=0,
-         dh_f=0;
+         xu_dh=0, yu_dh=0, zu_dh=0,
+         pu_dh=0;
   ravl_node_t *x, *y, *z, *p;
   ravl_node_t *alpha,
               *beta,
@@ -206,13 +213,6 @@ int RAVL::retrace(ravl_node_t *node, int8_t dT) {
               *rho;
 
   if (!node) { return 0; }
-
-  //DEBUG
-  //printf("retrace: n:%p dh:%i (dT:%i)\n", node, node->dh, dT);
-  //printf("retrace: n:'%s'{%p} dh:%i (dT:%i)\n", node->name.c_str(), node, node->dh, dT);
-  //printf("\n=-=-=-=sub-tree=-=-=-=\n");
-  //print_tree_r(node, 2);
-  //printf("=-=-=-=sub-tree=-=-=-=\n\n");
 
 
   // If we've deleted a node (dT < 0) and
@@ -225,12 +225,6 @@ int RAVL::retrace(ravl_node_t *node, int8_t dT) {
   //
   //
   if (node->dh == 0) {
-
-    //DEBUG
-    //printf("  node(%p)->dh == 0, --> retrace(node->p(%p), 0)\n", node, node->p);
-    //printf("  node('%s'{%p})->dh == 0, --> retrace(node->p('%s'{%p}), 0)\n",
-    //    node->name.c_str(), node,
-    //    node->p ? node->p->name.c_str() : "", node->p);
 
     p = node->p;
     if (p && (dT < 0)) {
@@ -248,11 +242,6 @@ int RAVL::retrace(ravl_node_t *node, int8_t dT) {
   //
   if ((node->dh <=  1) &&
       (node->dh >= -1)) {
-
-    //DEBUG
-    //printf("  |node(%p)->dh| <= 1, dT:%i\n", node, dT);
-    //printf("  |node('%s'{%p})->dh| <= 1, dT:%i\n", node->name.c_str(), node, dT);
-
 
     if (m_update) { m_update(node); }
 
@@ -287,14 +276,6 @@ int RAVL::retrace(ravl_node_t *node, int8_t dT) {
   if (node->l) { l_dh = (int32_t)(node->l->dh); }
   if (node->r) { r_dh = (int32_t)(node->r->dh); }
 
-  //DEBUG
-  //printf("  ...node(%p)->dh: %i (dT:%i)\n", node, node->dh, dT);
-  //printf("  ...node('%s'{%p})->dh: %i (dT:%i)\n", node->name.c_str(), node, node->dh, dT);
-  //printf("====\n");
-  //print_r(node, 2);
-  //printf("====\n\n");
-
-
   // left heavy (--)
   //
   if (node->dh < -1) {
@@ -306,9 +287,6 @@ int RAVL::retrace(ravl_node_t *node, int8_t dT) {
     // the parent.
     //
     if (l_dh == 1) {
-
-      //DEBUG
-      //printf("  doublerot -- +: node(%p)->dh: %i (dT:%i)\n", node, node->dh, dT);
 
       x = node;
       y = x->l;
@@ -358,8 +336,6 @@ int RAVL::retrace(ravl_node_t *node, int8_t dT) {
         m_update(z);
       }
 
-      //WIP!!!!!
-
       if (dT < 0) { return retrace(z->p, -1); }
       return retrace(z->p, 0);
     }
@@ -369,9 +345,6 @@ int RAVL::retrace(ravl_node_t *node, int8_t dT) {
     // There will only be a height change to the parent of this
     // subtree in the case the left child has dh=0;
     //
-
-    //DEBUG
-    //printf("  simplerot -- {-,0}: node(%p)->dh: %i (dT:%i)\n", node, node->dh, dT);
 
     xu_dh = ((l_dh == 0) ? -1 :  0);
     yu_dh = ((l_dh == 0) ?  1 :  0);
@@ -434,21 +407,9 @@ int RAVL::retrace(ravl_node_t *node, int8_t dT) {
   //
   if (r_dh == -1) {
 
-    // DEBUG
-    //printf("  doublerot ++ -\n");
-
     x = node;
     y = x->r;
     z = y->l;
-
-    //DEBUG
-    //printf("    x(dh:%i):%s\n", x->dh, x->name.c_str());
-    //printf("     \\\n");
-    //printf("      y(dh:%i):%s\n", y->dh, y->name.c_str());
-    //printf("     /\n");
-    //printf("    z(dh:%i):%s\n", z->dh, z->name.c_str());
-    //printf("\n");
-
 
     alpha = x->l;
     beta  = z->l;
@@ -510,11 +471,6 @@ int RAVL::retrace(ravl_node_t *node, int8_t dT) {
 
   xu_dh = ((r_dh == 0) ?  1 : 0);
   yu_dh = ((r_dh == 0) ? -1 : 0);
-  //pu_dh = ((r_dh == 0) ?  1 : 0);
-
-  //DEBUG
-  //printf("  simplerot ++ {0,+} r_dh:%i dh(x':%i, y':%i, p':%i)\n", r_dh, xu_dh, yu_dh, pu_dh);
-  //printf("  simplerot ++ {0,+} r_dh:%i dh(x':%i, y':%i)\n", r_dh, xu_dh, yu_dh);
 
   x = node;
   y = node->r;
@@ -579,7 +535,7 @@ int RAVL::retrace(ravl_node_t *node, int8_t dT) {
 // 0  - success
 // !0 - error
 //
-int RAVL::add(void *kd) {
+ravl_node_t *RAVL::add_p(void *kd) {
   int r, c;
   int8_t dT=0;
   ravl_node_t *node,
@@ -594,7 +550,7 @@ int RAVL::add(void *kd) {
     m_depth++;
     m_node_count++;
     if (m_update) { m_update(m_root); }
-    return 0;
+    return m_root;
   }
 
   // otherwise, find leaf node to
@@ -623,11 +579,6 @@ int RAVL::add(void *kd) {
 
     if (node->dh < 0) { dT = 1; }
 
-    //DEBUG
-    //printf("add<: node:%p dh:%i (p:%p)\n", node, node->dh, node->p);
-    //printf("add<: adding '%s'{%p} under node:'%s'%p dh:%i (p:%p)\n",
-    //    nn->name.c_str(), nn,
-    //    node->name.c_str(), node, node->dh, node->p);
   }
   else {
     node->r = nn;
@@ -635,11 +586,6 @@ int RAVL::add(void *kd) {
 
     if (node->dh > 0) { dT =  1; }
 
-    //DEBUG
-    //printf("add>: node:%p dh:%i (p:%p)\n", node, node->dh, node->p);
-    //printf("add>: adding '%s'{%p} under node:'%s'{%p} dh:%i (p:%p)\n",
-    //    nn->name.c_str(), nn,
-    //    node->name.c_str(), node, node->dh, node->p);
   }
 
 
@@ -648,16 +594,23 @@ int RAVL::add(void *kd) {
     m_update(nn);
   }
 
-  //DEBUG
-  //printf("add finished...starting retrace\n");
-  //printf("\nvvv (tree in intermediate state)\n");
-  //print_r(m_root, 0);
-  //printf("^^^ (tree in intermediate state)\n\n");
-
   // handle any rebalancing that needs
   // to be done
   //
-  return retrace(node, dT);
+  r = retrace(node, dT);
+  if (r<0) {
+    ravl_node_free(nn);
+    return NULL;
+  }
+
+  return nn;
+}
+
+int RAVL::add(void *kd) {
+  ravl_node_t *node;
+  node = add_p(kd);
+  if (!node) { return -1; }
+  return 0;
 }
 
 ravl_node_t *RAVL::search(void *query) {
@@ -673,6 +626,10 @@ ravl_node_t *RAVL::search(void *query) {
 }
 
 
+// dkey is left untouched and is only
+// used to find the appropriate entry
+// to delete.
+//
 int RAVL::del(void *dkey) {
 
   int r, c;
@@ -690,7 +647,7 @@ int RAVL::del(void *dkey) {
   node_nxt = m_root;
   while (node_nxt) {
     node = node_nxt;
-    c = m_cmp(node->data, dkey);
+    c = m_cmp(dkey, node->data);
     if (c==0) { break; }
     node_nxt = ( (c<0) ? node->l : node->r );
   }
@@ -699,10 +656,6 @@ int RAVL::del(void *dkey) {
   //
   if (!node) { return -1; }
   if (c!=0) { return -2; }
-
-  //DEBUG
-  //printf("del, found node('%s'{%p})\n", node->name.c_str(), node);
-
 
   if ((node->l) && (node->r)) {
 
@@ -715,9 +668,6 @@ int RAVL::del(void *dkey) {
     y = succ(x);
 
     y->dh = x->dh;
-
-    //DEBUG
-    //printf("del 2child, y=succ(x):'%s'{%p}\n", y->name.c_str(), y);
 
     // perform surgery to
     // take out y and put
@@ -759,12 +709,7 @@ int RAVL::del(void *dkey) {
 
     if (p_y == x) { p_y = y; }
     if (p_y) {
-
       p_y->dh = p_dh + dir_dh;
-
-      //printf("updating dh for '%s'(%p) (%i), dh now: %i\n",
-      //    p_y->name.c_str(), p_y, dT, p_y->dh);
-
     }
 
     if (m_free) { m_free(x->data); }
@@ -776,9 +721,6 @@ int RAVL::del(void *dkey) {
   // one or both of the node's children
   // is null
   //
-
-  //DEBUG
-  //printf("del {0,1}child\n");
 
   p = node->p;
   node_child = NULL;
@@ -809,6 +751,8 @@ int RAVL::del(void *dkey) {
   return retrace(p, dT);
 }
 
+// predecessor
+//
 ravl_node_t *RAVL::pred(ravl_node_t *node) {
   ravl_node_t *t=NULL;
   if (!node) { return node; }
@@ -827,6 +771,8 @@ ravl_node_t *RAVL::pred(ravl_node_t *node) {
   return t;
 }
 
+// successor
+//
 ravl_node_t *RAVL::succ(ravl_node_t *node) {
   ravl_node_t *t=NULL;
   if (!node) { return node; }
@@ -874,7 +820,4 @@ int RAVL::destroy(void) {
 
   return 0;
 }
-
-//int RAVL::rotate_right()  { return 0; }
-//int RAVL::rotate_left()   { return 0; }
 
