@@ -165,7 +165,9 @@ class RLET_A {
     }
 
     int consistency(void) {
-      return consistency_r(m_tree.m_root, 0);
+      int r = 0;
+      r = consistency_r(m_tree.m_root, 0);
+      return r;
     }
 
     // get value at virtual index.
@@ -344,6 +346,487 @@ class RLET_A {
     int64_t m_node_count;
     int64_t m_start;
     int64_t m_length;
+};
+
+//------------------
+//------------------
+//------------------
+
+
+typedef struct cumulative_interval_range_type {
+  int32_t count_l, count_r;
+  int32_t s, e;
+} cir_t;
+
+cir_t *_cir_create(int32_t s, int32_t e) {
+  cir_t *cir;
+  cir = (cir_t *)malloc(sizeof(cir_t));
+  cir->count_l = 0;
+  cir->count_r = 0;
+  cir->s = s;
+  cir->e = e;
+  return cir;
+}
+
+int _cir_cmp(void *_a, void *_b) {
+  cir_t *a, *b;
+
+  a = (cir_t *)_a;
+  b = (cir_t *)_b;
+
+  if (a->s < b->s) { return -1; }
+  if (a->s > b->s) { return  1; }
+
+  return 0;
+}
+
+void _cir_free(void *_a) { free(_a); }
+
+void _cir_print(void *_a) {
+  cir_t *a;
+  a = (cir_t *)_a;
+  printf("[%i:%i]{l:%i,r:%i}\n",
+      (int)a->s, (int)a->e,
+      (int)a->count_l, (int)a->count_r);
+}
+
+void _cir_node_print(ravl_node_t *node) {
+  _cir_print(node->data);
+}
+
+void _cir_update(ravl_node_t *node) {
+  cir_t *cir=NULL,
+        *child_cir=NULL;
+
+  if (!node) { return; }
+  cir = (cir_t *)node->data;
+
+  if (node->l) {
+    child_cir = (cir_t *)(node->l->data);
+    cir->count_l  = (child_cir->count_l + child_cir->count_r);
+    cir->count_l += (child_cir->e - child_cir->s);
+  }
+  else { cir->count_l = 0; }
+
+  if (node->r) {
+    child_cir = (cir_t *)(node->r->data);
+    cir->count_r  = (child_cir->count_l + child_cir->count_r);
+    cir->count_r += (child_cir->e - child_cir->s);
+  }
+  else { cir->count_r = 0; }
+
+  return;
+}
+
+
+
+
+// run length encoded tree, sparse, linear biased
+//
+// The idea is to allow for a list of elements from [0..n)
+// (0 to (n-1) inclusive) that can be accessed, removed
+// or added to efficiently.
+// In addition, we want an 'index' operation, allowing us
+// to access the k'th element efficiently.
+//
+// The idea is to store intervals that represent a contiguous
+// increasing sequence of elements.
+// Each of these intervals is stored in a balanced tree node
+// allowing for efficient inclusivity tests (O(lg(n) on
+// start value).
+//
+// In addition, a count of how many elements are in each of the
+// children, including the interval range, is kept, allowing
+// us to do index lookups.
+//
+// , in tree nodesi, with the understanding
+// that 
+//
+//
+class RLET_SLB {
+  public:
+
+
+    RLET_SLB() {
+      m_tree.m_update     = _cir_update;
+      m_tree.m_cmp        = _cir_cmp;
+      m_tree.m_free       = _cir_free;
+      m_tree.m_node_print = _cir_node_print;
+
+      m_node_count = 0;
+      m_start = 0;
+      m_length = 0;
+    }
+
+    ~RLET_SLB() {
+      m_tree.destroy();
+    }
+
+    void destroy() { m_tree.destroy(); }
+
+    void print() {
+      printf("m_tree: node_count:%i, start:%i, length:%i\n",
+          (int)m_node_count, (int)m_start, (int)m_length);
+      m_tree.print_tree();
+    }
+
+    // initialize structre.
+    // Create initial node which holds the range
+    //
+    int init(int32_t s, int32_t e) {
+      int r;
+      cir_t *cir;
+
+      m_tree.destroy();
+      if (e<=s) { return 0; }
+
+      m_length = e - s;
+      m_node_count=1;
+      cir = _cir_create(s,e);
+      r = m_tree.add(cir);
+      if (r<0) { return r; }
+
+      return 0;
+    }
+
+    // check intervals don't overlap
+    // check interval/index counts match up.
+    // recursively go through.
+    // Thsi can be slow as it might make multiple
+    // sweeps through the tree
+    //
+    // return:
+    //
+    //  0 : consistent
+    // <0 : inconsistent
+    //
+    int consistency_r(ravl_node_t *node, int lvl=0) {
+      int r;
+      int32_t s;
+      cir_t *cir, *cir_l, *cir_r;
+      ravl_node_t *node_l, *node_r;
+
+      if (!node) { return 0; }
+
+      cir = (cir_t *)(node->data);
+      if (!cir) { return -1; }
+
+      if (cir->e <= cir->s) { return -2; }
+
+      node_l = m_tree.pred(node);
+      if (node_l) {
+        cir_l = (cir_t *)(node_l->data);
+        if (cir_l->s >= cir->s) { return -3; }
+        if (cir_l->e >= cir->s) { return -5; }
+      }
+
+      node_r = m_tree.succ(node);
+      if (node_r) {
+        cir_r = (cir_t *)(node_r->data);
+        if (cir_r->s <= cir->e) { return -4; }
+        if (cir_r->e <= cir->e) { return -6; }
+      }
+
+      if (node->l) {
+        node_l = node->l;
+        cir_l = (cir_t *)(node_l->data);
+        s = cir_l->count_l + cir_l->count_r + (cir_l->e - cir_l->s);
+        if (s != cir->count_l) { return -7; }
+      }
+
+      if (node->r) {
+        node_r = node->r;
+        cir_r = (cir_t *)(node_r->data);
+        s = cir_r->count_l + cir_r->count_r + (cir_r->e - cir_r->s);
+        if (s != cir->count_r) { return -8; }
+      }
+
+      r = consistency_r(node->l, lvl+1);
+      if (r<0) { return r; }
+
+      r = consistency_r(node->r, lvl+1);
+      if (r<0) { return r; }
+
+      return 0;
+    }
+
+    // check consistency of nodes.
+    //
+    // return:
+    //
+    //  0 : consistent
+    // <0 : inconsistent
+    //
+    int consistency() {
+      int r;
+      int32_t s;
+      cir_t *cir;
+      ravl_node_t *node;
+
+      if (!m_tree.m_root) {
+        if (m_node_count != 0) { return -1; }
+        return 0;
+      }
+
+      node = m_tree.m_root;
+      cir = (cir_t *)node->data;
+      s = cir->count_l + cir->count_r + (cir->e - cir->s);
+
+      //if (s != m_length) { return -2; }
+      r = consistency_r(node, 0);
+      return r;
+    }
+
+    // Find the value at index
+    //
+    // return:
+    //
+    //  0 : success, val, if non-null, populated with value
+    // <0 : error or not found
+    //
+    int read(int32_t *val, int32_t index) {
+      int32_t idx_s = 0,
+              prv_s = 0,
+              cur_s = 0,
+              d_idx = 0;
+      ravl_node_t *node, *node_nxt;
+      cir_t *cir;
+
+      node_nxt = m_tree.m_root;
+      while (node_nxt) {
+        node = node_nxt;
+        cir = (cir_t *)(node->data);
+        cur_s = prv_s + cir->count_l;
+
+        if (index < cur_s) {
+          node_nxt = node->l;
+          continue;
+        }
+
+        d_idx = cir->e - cir->s;
+
+        if (index >= (cur_s + d_idx)) {
+          prv_s = cur_s + d_idx;
+          node_nxt = node->r;
+          continue;
+        }
+
+        if (val) { *val = cir->s + (index - cur_s); }
+        return 0;
+      }
+
+      return -1;
+    }
+
+    // return:
+    //
+    //  1  : val exists in structure
+    //  0  : val does not exist in structure
+    //
+    int exists(int32_t val) {
+      ravl_node_t *node;
+      cir_t *cir;
+
+      node = m_tree.m_root;
+      while (node) {
+        cir = (cir_t *)(node->data);
+        if (val < cir->s) {
+          node = node->l;
+          continue;
+        }
+        if (val >= cir->e) {
+          node = node->r;
+          continue;
+        }
+
+        if ((cir->s <= val) &&
+            (val < cir->e)) {
+          return 1;
+        }
+        return 0;
+      }
+      return 0;
+    }
+
+    // find node that houses value.
+    //
+    // return:
+    //
+    //   ravl_node_t * pointer to node on success
+    //   NULL on not found or error
+    //
+    ravl_node_t *find_node(int32_t val) {
+      ravl_node_t *node;
+      cir_t *cir;
+
+      node = m_tree.m_root;
+      while (node) {
+        cir = (cir_t *)(node->data);
+        if (val < cir->s) {
+          node = node->l;
+          continue;
+        }
+        if (val >= cir->e) {
+          node = node->r;
+          continue;
+        }
+
+        if ((cir->s <= val) &&
+            (val < cir->e)) {
+          return node;
+        }
+        return NULL;
+      }
+      return NULL;
+    }
+
+    // recursively update node and its parents.
+    // Used to keep track of the left and right
+    // count.
+    // Under tree insertion/deleteions it should
+    // recursively go through and call update
+    // to all parent nodes affetcted but sometimes
+    // we want to update the nodes explicitely
+    // ourselves, without doing an balance tree
+    // insert or delete operation.
+    //
+    int update_r(ravl_node_t *node) {
+      ravl_node_t *nl, *nr;
+      cir_t *cir, *cl, *cr;
+      int32_t count;
+
+      if (!node) { return 0; }
+
+      cir = (cir_t *)(node->data);
+
+      if (node->l) {
+        nl = node->l;
+        cl = (cir_t *)(nl->data);
+        cir->count_l = cl->count_l + cl->count_r + (cl->e - cl->s);
+      }
+      else {
+        cir->count_l = 0;
+      }
+
+      if (node->r) {
+        nr = node->r;
+        cr = (cir_t *)(nr->data);
+        cir->count_r = cr->count_l + cr->count_r + (cr->e - cr->s);
+      }
+      else {
+        cir->count_r = 0;
+      }
+
+      return update_r(node->p);
+    }
+
+
+    // add val.
+    //
+    // Internally, this will merge contiguous
+    // regions neighboring any newly created
+    // node.
+    //
+    // Return:
+    //
+    //  0 : success
+    //  1 : element already exists, nothing done
+    // <0 : error
+    //
+    int add(int32_t val) {
+      ravl_node_t *node,
+                  *tnode;
+      cir_t *cir, *tcir;
+      int32_t merge_s, merge_e;
+
+      // if it already exists, we can
+      // just do nothing other than
+      // return a soft error code
+      //
+      node = find_node(val);
+      if (node) { return 1; }
+
+      cir = _cir_create(val,val+1);
+      node = m_tree.add_p(cir);
+
+      tnode = m_tree.succ(node);
+      if (tnode) {
+        tcir = (cir_t *)(tnode->data);
+        if (tcir->s == cir->e) {
+          merge_e = tcir->e;
+          m_tree.del(tcir);
+
+          cir->e = merge_e;
+          update_r(node);
+        }
+      }
+
+      tnode = m_tree.pred(node);
+      if (tnode) {
+        tcir = (cir_t *)(tnode->data);
+        if (tcir->e == cir->s) {
+          merge_s = tcir->s;
+          m_tree.del(tcir);
+
+          cir->s = merge_s;
+          update_r(node);
+        }
+      }
+
+      m_length++;
+
+      return 0;
+    }
+
+    // return:
+    //
+    //  0 : success
+    // -1 : error (not found)
+    //
+    int rem(int32_t val) {
+      int r;
+      ravl_node_t *node;
+      cir_t *cir,
+            *cir_l,
+            *cir_r,
+            orig;
+
+      node = find_node(val);
+      if (!node) { return 1; }
+
+      cir = (cir_t *)(node->data);
+
+      orig.s = cir->s;
+      orig.e = cir->e;
+      orig.count_l = cir->count_l;
+      orig.count_r = cir->count_r;
+
+      r = m_tree.del(&orig);
+      if (r<0) { return r; }
+
+      cir_l = NULL;
+      if (orig.s < val) {
+        cir_l = _cir_create(orig.s, val);
+        r = m_tree.add(cir_l);
+        if (r<0) { return r; }
+      }
+
+      cir_r = NULL;
+      if (orig.e > (val+1)) {
+        cir_r = _cir_create(val+1, orig.e);
+        r = m_tree.add(cir_r);
+        if (r<0) { return r; }
+      }
+
+      m_length--;
+
+      return 0;
+    }
+
+    RAVL m_tree;
+    int32_t m_node_count;
+    int32_t m_start;
+    int32_t m_length;
 };
 
 #endif

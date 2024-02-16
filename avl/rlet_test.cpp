@@ -9,7 +9,7 @@
 
 #include "rlet.hpp"
 
-int rlet_test_0() {
+int rlet_a_test_0() {
   RLET_A rlet;
   int r, i, n=1000, m = 100, M = 100;
   int64_t idx;
@@ -76,11 +76,113 @@ int rlet_test_0() {
   return 0;
 }
 
+int rlet_slb_test_0() {
+  RLET_SLB rlet;
+  int r, i, it, n_it=1000, m=100, M=100;
+  int32_t idx,
+          val;
+  int32_t *ref_a;
+
+  ravl_node_t *node;
+
+  int op;
+  int verbose = 0;
+
+  ref_a = (int32_t *)malloc(sizeof(int32_t)*m);
+  r = rlet.init(0, m);
+  if (r<0) { return -1; }
+
+  for (i=0; i<m; i++) { ref_a[i] = i; }
+
+  for (it=0; it<n_it; it++) {
+
+    if (verbose) {
+      printf("[%i/%i]\n", it, n_it);
+      printf("----------\n");
+      rlet.print();
+      printf("----------\n\n\n");
+    }
+
+    r = rlet.consistency();
+    if (r<0) { return -2; }
+
+    for (i=0, idx=0; i<m; i++) {
+      if (ref_a[i] < 0) { continue; }
+      if (ref_a[i] >= 0) {
+        if (!rlet.exists(i)) { return -6; }
+        r = rlet.read( &val, idx );
+        if (r<0) { return -4; }
+        if (val != i) {
+
+          if (verbose) {
+            printf("val %i != i %i (idx:%i)\n", val, i, idx);
+          }
+
+          return -5;
+        }
+        idx++;
+      }
+      else {
+        if (rlet.exists(i)) { return -7; }
+      }
+    }
+
+    val = rand()%m;
+    op = rand()%2;
+
+    if (verbose) {
+      printf("\n===\n");
+      printf("  op:%s(%i), val:%i\n",
+          (op == 0) ? "add" : "del", op,
+          val);
+      printf("===\n\n");
+    }
+
+    if (op == 0) {
+
+      r = rlet.add(val);
+      if (r>0) {
+        if (ref_a[val] < 0) { return -8; }
+      }
+      ref_a[val] = val;
+
+    }
+
+    else if (op == 1) {
+
+      r = rlet.rem(val);
+      if (r<0) {
+        if (ref_a[val] >= 0) { return -9; }
+      }
+      ref_a[val] = -1;
+
+      if (verbose) {
+        printf("!!!!! remove val:%i\n", val);
+        rlet.print();
+      }
+
+    }
+
+  }
+
+  rlet.destroy();
+
+  free(ref_a);
+
+  return 0;
+}
+
 int main(int argc, char **argv) {
   int r;
   RLET_A rlet;
 
-  r = rlet_test_0();
+  r = rlet_a_test_0();
+  printf("rlet_a_test_0: %i\n", r);
 
-  printf("...%i\n", r);
+  printf("---\n\n");
+
+  r = rlet_slb_test_0();
+  printf("rlet_slb_test_0: %i\n", r);
+
+  return 0;
 }

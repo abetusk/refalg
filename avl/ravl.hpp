@@ -15,28 +15,14 @@
 #include <stdint.h>
 #include <string.h>
 
-#define RAVL_DEBUG
-#ifdef RAVL_DEBUG
-#include <string>
-#include <vector>
-#endif
-
 typedef struct ravl_node_type {
 
-#ifdef RAVL_DEBUG
-  //std::string name;
-#endif
-
-  // balance factr (delta height)
+  // balance factor (delta height)
   // this is:
   //
   //   height(rchild) - height(lchild)
   //
   int8_t dh;
-
-  // maybe unused?
-  //
-  //int32_t depth;
 
   // p - parent
   // l - left child
