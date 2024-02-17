@@ -84,6 +84,16 @@ void _vr_update(ravl_node_t *node) {
 // the same value, those intervals are merged by extending
 // the new interval and deleting the neighboring entries.
 //
+// The main workflow is:
+//
+// T.init(s,e)
+// ...
+// T.update(idx,val)
+// T.read(&val, idx);
+// ...
+// T.destroy()
+//
+//
 class RLET_A {
   public:
 
@@ -439,8 +449,17 @@ void _cir_update(ravl_node_t *node) {
 // children, including the interval range, is kept, allowing
 // us to do index lookups.
 //
-// , in tree nodesi, with the understanding
-// that 
+// The main workflow is:
+//
+// T.init(s,e)
+// ...
+// T.rem(val)
+// ...
+// T.add(val)
+// T.exists(val)
+// T.read(&val, idx);
+// ...
+// T.destroy()
 //
 //
 class RLET_SLB {

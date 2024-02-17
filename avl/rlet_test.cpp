@@ -11,7 +11,7 @@
 
 int rlet_a_test_0() {
   RLET_A rlet;
-  int r, i, n=1000, m = 100, M = 100;
+  int r, i, n=10000, m = 100, M = 100;
   int64_t idx;
   int32_t val;
 
@@ -78,7 +78,7 @@ int rlet_a_test_0() {
 
 int rlet_slb_test_0() {
   RLET_SLB rlet;
-  int r, i, it, n_it=1000, m=100, M=100;
+  int r, i, it, n_it=10000, m=100, M=100;
   int32_t idx,
           val;
   int32_t *ref_a;
