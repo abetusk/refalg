@@ -167,6 +167,7 @@ int rlet_slb_test_0() {
   RLET_SLB rlet;
   int r, i, it, n_it=10000, m=100, M=100;
   int32_t idx,
+          tidx,
           val;
   int32_t *ref_a;
 
@@ -207,6 +208,11 @@ int rlet_slb_test_0() {
 
           return -5;
         }
+
+        r = rlet.index( &tidx, val);
+        if (r<0) { return -12; }
+        if (tidx != idx) { return -13; }
+
         idx++;
       }
       else {
@@ -263,6 +269,7 @@ int rlet_slb_cpy_test_0() {
   RLET_SLB rlet, doppleganger;
   int r, i, it, n_it=10000, m=100, M=100;
   int32_t idx,
+          tidx,
           val;
   int32_t *ref_a;
 
@@ -310,6 +317,10 @@ int rlet_slb_cpy_test_0() {
           return -5;
         }
 
+        r = rlet.index( &tidx, val);
+        if (r<0) { return -12; }
+        if (tidx != idx) { return -13; }
+
         if (!doppleganger.exists(i)) { return -26; }
         r = doppleganger.read( &val, idx );
         if (r<0) { return -24; }
@@ -321,6 +332,10 @@ int rlet_slb_cpy_test_0() {
 
           return -25;
         }
+
+        r = doppleganger.index( &tidx, val);
+        if (r<0) { return -28; }
+        if (tidx != idx) { return -29; }
 
         idx++;
 

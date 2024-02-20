@@ -693,6 +693,60 @@ class RLET_SLB {
       return -1;
     }
 
+    // get index from val
+    //
+    // node holds cir_t data
+    // cir_t data holds:
+    //   - sum of interval lengths in count_l
+    //   - sum of interval lengths in count_r
+    //   - start and end (non-inclusive) of interval
+    //
+    // like the `exists` function below, we can traverse
+    // nodes, adding to our current start if we turn right
+    // from the left child and node interval.
+    //
+    // Return:
+    //
+    //  0 : success, if _index is non-null, *_index holds index where val was found
+    // <0 : error (value not found)
+    //
+    int index(int32_t *_index, int32_t val) {
+      int32_t idx_s = 0,
+              prv_s = 0,
+              cur_s = 0,
+              d_idx = 0;
+      ravl_node_t *node;
+      cir_t *cir;
+
+      node = m_tree.m_root;
+      while (node) {
+        cir = (cir_t *)(node->data);
+        cur_s = prv_s + cir->count_l;
+
+        if (val < cir->s) {
+          node = node->l;
+          continue;
+        }
+
+        d_idx = cir->e - cir->s;
+
+        if (val >= cir->e) {
+          node = node->r;
+
+          prv_s = cur_s + d_idx;
+          continue;
+        }
+
+        if ((cir->s <= val) &&
+            (val < cir->e)) {
+          if (_index) { *_index = cur_s + (val - cir->s); }
+          return 0;
+        }
+        return -1;
+      }
+      return -1;
+    }
+
     // return:
     //
     //  1  : val exists in structure
