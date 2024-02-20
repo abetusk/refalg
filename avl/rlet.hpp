@@ -21,7 +21,7 @@ typedef struct value_interval_range_type {
   int64_t s, e;
 } value_range_t;
 
-value_range_t *_vr_create(int32_t v, int64_t s, int64_t e) {
+static value_range_t *_vr_create(int32_t v, int64_t s, int64_t e) {
   value_range_t *vr;
   vr = (value_range_t *)malloc(sizeof(value_range_t));
   vr->v = v;
@@ -30,7 +30,7 @@ value_range_t *_vr_create(int32_t v, int64_t s, int64_t e) {
   return vr;
 }
 
-int _vr_cmp(void *_a, void *_b) {
+static int _vr_cmp(void *_a, void *_b) {
   value_range_t *a, *b;
 
   a = (value_range_t *)_a;
@@ -42,20 +42,20 @@ int _vr_cmp(void *_a, void *_b) {
   return 0;
 }
 
-void _vr_free(void *_a) { free(_a); }
+static void _vr_free(void *_a) { free(_a); }
 
-void _vr_print(void *_a) {
+static void _vr_print(void *_a) {
   value_range_t *a;
   a = (value_range_t *)_a;
   printf("[%i:%i]{v:%i}\n",
       (int)a->s, (int)a->e, (int)a->v);
 }
 
-void _node_print(ravl_node_t *node) {
+static void _node_print(ravl_node_t *node) {
   _vr_print(node->data);
 }
 
-void _vr_update(ravl_node_t *node) {
+static void _vr_update(ravl_node_t *node) {
 }
 
 // run length encoded tree - fixed array 
@@ -121,16 +121,72 @@ class RLET_A {
       value_range_t *vr;
 
       m_tree.destroy();
-
       m_node_count=1;
-
-      vr = (value_range_t *)malloc(sizeof(value_range_t));
-      vr->v = val;
-      vr->s = s;
-      vr->e = e_ninc;
+      vr = _vr_create(val, s, e_ninc);
 
       return m_tree.add(vr);
     }
+
+    int copy_r(ravl_node_type *src_node) {
+      int r;
+      value_range_t *src_data, *dst_data;
+
+      if (!src_node) { return 0; }
+
+      dst_data = NULL;
+      if (src_node->l) {
+        src_data = (value_range_t *)(src_node->l->data);
+        dst_data = _vr_create(src_data->v, src_data->s, src_data->e);
+
+        r = m_tree.add(dst_data);
+        if (r<0) { return r; }
+      }
+
+      dst_data = NULL;
+      if (src_node->r) {
+        src_data = (value_range_t *)(src_node->r->data);
+        dst_data = _vr_create(src_data->v, src_data->s, src_data->e);
+
+        r = m_tree.add(dst_data);
+        if (r<0) { return r; }
+      }
+
+      r = copy_r(src_node->l);
+      if (r<0) { return r; }
+
+      r = copy_r(src_node->r);
+      if (r<0) { return r; }
+
+      return 0;
+    }
+
+    // functional copy
+    //
+    int copy(RLET_A *src) {
+      int r;
+      value_range_t *src_data, *dst_data;
+
+      m_tree.destroy();
+
+      m_node_count  = src->m_node_count;
+      m_start       = src->m_start;
+      m_length      = src->m_length;
+
+      if (src->m_tree.m_root) {
+        src_data = (value_range_t *)(src->m_tree.m_root->data);
+        dst_data = _vr_create(src_data->v, src_data->s, src_data->e);
+
+        r = m_tree.add(dst_data);
+        if (r<0) { return r; }
+      }
+
+      r = copy_r(src->m_tree.m_root);
+      if (r<0) { return r; }
+
+      return 0;
+    }
+
+
 
     int consistency_r(ravl_node_t *node, int lvl=0) {
       int r;
@@ -368,7 +424,7 @@ typedef struct cumulative_interval_range_type {
   int32_t s, e;
 } cir_t;
 
-cir_t *_cir_create(int32_t s, int32_t e) {
+static cir_t *_cir_create(int32_t s, int32_t e) {
   cir_t *cir;
   cir = (cir_t *)malloc(sizeof(cir_t));
   cir->count_l = 0;
@@ -378,7 +434,7 @@ cir_t *_cir_create(int32_t s, int32_t e) {
   return cir;
 }
 
-int _cir_cmp(void *_a, void *_b) {
+static int _cir_cmp(void *_a, void *_b) {
   cir_t *a, *b;
 
   a = (cir_t *)_a;
@@ -390,9 +446,9 @@ int _cir_cmp(void *_a, void *_b) {
   return 0;
 }
 
-void _cir_free(void *_a) { free(_a); }
+static void _cir_free(void *_a) { free(_a); }
 
-void _cir_print(void *_a) {
+static void _cir_print(void *_a) {
   cir_t *a;
   a = (cir_t *)_a;
   printf("[%i:%i]{l:%i,r:%i}\n",
@@ -400,11 +456,11 @@ void _cir_print(void *_a) {
       (int)a->count_l, (int)a->count_r);
 }
 
-void _cir_node_print(ravl_node_t *node) {
+static void _cir_node_print(ravl_node_t *node) {
   _cir_print(node->data);
 }
 
-void _cir_update(ravl_node_t *node) {
+static void _cir_update(ravl_node_t *node) {
   cir_t *cir=NULL,
         *child_cir=NULL;
 
@@ -838,6 +894,65 @@ class RLET_SLB {
       }
 
       m_length--;
+
+      return 0;
+    }
+
+    int copy_r(ravl_node_type *src_node) {
+      int r;
+      cir_t *src_data, *dst_data;
+
+      if (!src_node) { return 0; }
+
+      dst_data = NULL;
+      if (src_node->l) {
+        src_data = (cir_t *)(src_node->l->data);
+        dst_data = _cir_create(src_data->s, src_data->e);
+
+        r = m_tree.add(dst_data);
+        if (r<0) { return r; }
+      }
+
+      dst_data = NULL;
+      if (src_node->r) {
+        src_data = (cir_t *)(src_node->r->data);
+        dst_data = _cir_create(src_data->s, src_data->e);
+
+        r = m_tree.add(dst_data);
+        if (r<0) { return r; }
+      }
+
+      r = copy_r(src_node->l);
+      if (r<0) { return r; }
+
+      r = copy_r(src_node->r);
+      if (r<0) { return r; }
+
+      return 0;
+    }
+
+    // functional copy
+    //
+    int copy(RLET_SLB *src) {
+      int r;
+      cir_t *src_data, *dst_data;
+
+      m_tree.destroy();
+
+      m_node_count  = src->m_node_count;
+      m_start       = src->m_start;
+      m_length      = src->m_length;
+
+      if (src->m_tree.m_root) {
+        src_data = (cir_t *)(src->m_tree.m_root->data);
+        dst_data = _cir_create(src_data->s, src_data->e);
+
+        r = m_tree.add(dst_data);
+        if (r<0) { return r; }
+      }
+
+      r = copy_r(src->m_tree.m_root);
+      if (r<0) { return r; }
 
       return 0;
     }

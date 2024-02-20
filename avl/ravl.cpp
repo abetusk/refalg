@@ -21,7 +21,7 @@
 // adding or calling this function, this will
 // only assign the ravl_node_t it's data.
 //
-ravl_node_t *ravl_create(ravl_node_t *parent,
+ravl_node_t *ravl_node_create(ravl_node_t *parent,
                          void *data) {
   static int idx=0;
   ravl_node_t *node;
@@ -546,7 +546,7 @@ ravl_node_t *RAVL::add_p(void *kd) {
   // insert and nothing more to do
   //
   if (!m_root) {
-    m_root = ravl_create(NULL, kd);
+    m_root = ravl_node_create(NULL, kd);
     m_depth++;
     m_node_count++;
     if (m_update) { m_update(m_root); }
@@ -571,7 +571,7 @@ ravl_node_t *RAVL::add_p(void *kd) {
   // we know the height of the whole subtree
   // has changed and we set dT appropriately.
   //
-  nn = ravl_create(node, kd);
+  nn = ravl_node_create(node, kd);
   dT = 0;
   if (c < 0)  {
     node->l = nn;
