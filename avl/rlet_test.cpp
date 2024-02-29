@@ -220,6 +220,8 @@ int rlet_slb_test_0() {
       }
     }
 
+    if (idx != rlet.count()) { return -30; }
+
     val = rand()%m;
     op = rand()%2;
 
@@ -346,6 +348,10 @@ int rlet_slb_cpy_test_0() {
       }
 
     }
+
+    if (idx != rlet.count()) { return -30; }
+    if (rlet.count() != doppleganger.count()) { return -31; }
+
 
     val = rand()%m;
     op = rand()%2;

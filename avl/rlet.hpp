@@ -564,6 +564,13 @@ class RLET_SLB {
       return 0;
     }
 
+    int32_t count() {
+      cir_t *cir;
+      if (!m_tree.m_root) { return 0; }
+      cir = (cir_t *)(m_tree.m_root->data);
+      return (cir->count_l + cir->count_r + (cir->e - cir->s));
+    }
+
     // check intervals don't overlap
     // check interval/index counts match up.
     // recursively go through.
@@ -951,6 +958,99 @@ class RLET_SLB {
 
       return 0;
     }
+
+    // 
+    int copy_fast_r(ravl_node_type *dst_node, ravl_node_type *src_node) {
+      int r;
+      cir_t *src_data, *dst_data;
+      ravl_node_type *child_node;
+
+      if ((!dst_node) && (!src_node)) { return 0; }
+      if (!dst_node) { return -1; }
+      if (!src_node) { return -1; }
+
+      if (src_node->l) {
+        src_data = (cir_t *)(src_node->l->data);
+        dst_data = _cir_create(src_data->s, src_data->e);
+
+        dst_data->count_l = src_data->count_l;
+        dst_data->count_r = src_data->count_r;
+
+        child_node = (ravl_node_t *)malloc(sizeof(ravl_node_t));
+        child_node->p = dst_node;
+        child_node->l = NULL;
+        child_node->r = NULL;
+        child_node->dh = src_node->l->dh;
+        child_node->data = dst_data;
+
+        dst_node->l = child_node;
+
+        r = copy_fast_r(dst_node->l, src_node->l);
+        if (r<0) { return r; }
+      }
+
+      if (src_node->r) {
+        src_data = (cir_t *)(src_node->r->data);
+        dst_data = _cir_create(src_data->s, src_data->e);
+
+        dst_data->count_l = src_data->count_l;
+        dst_data->count_r = src_data->count_r;
+
+        child_node = (ravl_node_t *)malloc(sizeof(ravl_node_t));
+        child_node->p = dst_node;
+        child_node->l = NULL;
+        child_node->r = NULL;
+        child_node->dh = src_node->r->dh;
+        child_node->data = dst_data;
+
+        dst_node->r = child_node;
+
+        r = copy_fast_r(dst_node->r, src_node->r);
+        if (r<0) { return r; }
+      }
+
+      return 0;
+    }
+
+    // trying to speed copy up.
+    // I hate doing it because it requires intimate
+    // knowledge of the underly avl node type,
+    // specifically the `dh` parameter,
+    // but the O(lg N) factor is too much
+    // not at least experiment with
+    //
+    int copy_fast(RLET_SLB *src) {
+      int r;
+      cir_t *src_data, *dst_data;
+
+      m_tree.destroy();
+
+      m_node_count  = src->m_node_count;
+      m_start       = src->m_start;
+      m_length      = src->m_length;
+
+      if (src->m_tree.m_root) {
+        src_data = (cir_t *)(src->m_tree.m_root->data);
+        dst_data = _cir_create(src_data->s, src_data->e);
+
+        dst_data->count_l = src_data->count_l;
+        dst_data->count_r = src_data->count_r;
+
+        m_tree.m_root = (ravl_node_t *)malloc(sizeof(ravl_node_t));
+        m_tree.m_root->p = NULL;
+        m_tree.m_root->l = NULL;
+        m_tree.m_root->r = NULL;
+        m_tree.m_root->dh = src->m_tree.m_root->dh;
+        m_tree.m_root->data = dst_data;
+      }
+
+      r = copy_fast_r(m_tree.m_root, src->m_tree.m_root);
+      if (r<0) { return r; }
+
+      return 0;
+    }
+
+    //int copy(RLET_SLB *src) { return copy_fast(src); }
 
     int copy_r(ravl_node_type *src_node) {
       int r;
