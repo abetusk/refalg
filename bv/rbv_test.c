@@ -8,7 +8,7 @@
 int test0(void) {
   int32_t i;
   int it=0, n_it=1000;
-  int n= 31, stride =4;
+  int n= 67, stride =4;
   int16_t p;
   int8_t v;
 
@@ -25,7 +25,7 @@ int test0(void) {
   }
   rbv_print(rbv);
 
-  x = rbv_rank(rbv, 7, 17);
+  x = rbv_rank(rbv, 17, 57);
 
   printf("got: %i\n", (int)x);
 

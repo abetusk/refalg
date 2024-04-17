@@ -158,37 +158,60 @@ int16_t rbv_rank(rbv_t *rbv, int32_t s, int32_t e) {
   //DEBUG
   printf("\n---\n");
   printf("s:%i, e:%i\n", s, e);
-  printf("s_idx: %i (ofst:%i), e_idx:%i (ofst:%i)\n",
-      s_idx, s_off, e_idx, e_off);
+  printf("s_limb_idx: %i (ofst:%i), e_limb_idx:%i (ofst:%i)\n",
+      s_limb_idx, s_limb_off, e_limb_idx, e_limb_off);
 
   s_neg_beg = s_l;
   e_neg_end = e_r;
 
+  s_idx = (rbv->n_rank/2)  + (s_limb_idx/2);
+  e_idx = (rbv->n_rank/2)  + (e_limb_idx/2);
+
   s_sum = 0;
-  e_sum = 0;
+  e_sum = rbv->limb[e_limb_idx];
 
-  // find start and end index height
+  // keep running total for left till index.
+  // if the node is a right child, we want
+  // to subtract the right childs value
+  // from the parent to only include the
+  // left sum.
   //
-  for (s_h = 1, t_s = s_idx; t_s > 0; t_s /= 2, s_h++) ;
-  for (e_h = 1, t_e = e_idx; t_e > 0; t_e /= 2, e_h++) ;
+  while (s_idx != e_idx) {
 
-
-  // bring whichever one is lower up to the same level
-  // keeping a running total of the sum to the left
-  //
-  for (t_s_h = s_h; t_s_h > t_e_h; t_s_h--) {
     par_idx = s_idx / 2;
-    if ((2*par_idx) != s_idx) {
+    if (((2*par_idx)+1) != s_idx) {
       s_sum += rbv->rank[par_idx] - rbv->rank[s_idx];
     }
+
+    // fucking dammit, this fucking thing needs more fiddling
+    // WIP! DOES NOT WORK!!!!
+    //
+    par_idx = s_idx / 2;
+    if (((2*par_idx)+1) != e_idx) {
+      if (e_idx < rbv->n_rank) {
+
+        printf("  rank[par:%i] - (rank[e_idx:%i] - e_sum:%i): %i\n",
+            rbv->rank[par_idx], rbv->rank[e_idx], e_sum, 
+            (rbv->rank[par_idx] - (rbv->rank[e_idx] - e_sum)) );
+
+        e_sum = (rbv->rank[par_idx] - (rbv->rank[e_idx] - e_sum));
+        //e_sum += (rbv->rank[par_idx] - rbv->rank[e_idx]);
+      }
+    }
+
+    printf("s_idx:%i, e_idx:%i, s_sum:%i, e_sum:%i\n",
+        s_idx, e_idx,
+        s_sum, e_sum);
+
+    s_idx = (s_idx-1)/2;
+    e_idx = (e_idx-1)/2;
   }
 
-  for (t_e_h = e_h; t_e_h > t_s_h; t_e_h--) {
-    par_idx = e_idx / 2;
-    if ((2*par_idx) != e_idx) {
-      e_sum += rbv->rank[par_idx] - rbv->rank[e_idx];
-    }
-  }
+  printf("s_sum:%i, e_sum:%i, fin sum? %i\n",
+      s_sum, e_sum, e_sum - s_sum);
+
+  return -1;
+
 
   while ((s_idx != e_idx) &&
          (s_idx > 0) &&
