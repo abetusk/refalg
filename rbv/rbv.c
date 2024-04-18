@@ -1,3 +1,10 @@
+// To the extent possible under law, the person who associated CC0 with
+// this file has waived all copyright and related or neighboring rights
+// to this file.
+//     
+// You should have received a copy of the CC0 legalcode along with this
+// work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
+//
 #include "rbv.h"
 
 static int _popcount8(uint8_t u8) {
@@ -245,7 +252,95 @@ uint8_t rbv_val(rbv_t *rbv, int16_t pos, int8_t val) {
   return val;
 }
 
-int16_t rbv_pos(rbv_t *rbv, int16_t idx) {
+int16_t rbv_rank_idx(rbv_t *rbv, int16_t query_rank) {
+  int16_t pos, count;
+
+  int16_t rank_idx,
+          rank_idx_l,
+          rank_idx_r,
+          limb_idx_l,
+          limb_idx_r;
+
+  uint8_t u8;
+
+  rank_idx = 0;
+
+  //DEBUG
+  printf("\n----\n");
+  printf("rank_idx: query_rank:%i\n", query_rank);
+
+  while ( ((2*rank_idx)+1) < rbv->n_rank ) {
+    rank_idx_l = 2*rank_idx+1;
+    rank_idx_r = 2*rank_idx+2;
+
+    printf("..rank[rank_idx:%i]:%02x, rank[rank_idx_l:%i]:%02x, rank[rank_idx_r:%i]:%02x\n",
+        rank_idx, rbv->rank[rank_idx],
+        rank_idx_l, rbv->rank[rank_idx_l],
+        rank_idx_r, rbv->rank[rank_idx_r]);
+
+    if (query_rank < rbv->rank[rank_idx_l]) {
+      rank_idx = rank_idx_l;
+    }
+    else {
+      query_rank -= rbv->rank[rank_idx_l];
+      rank_idx = rank_idx_r;
+    }
+  }
+
+  printf(".rank_idx:%i\n", rank_idx);
+
+  limb_idx_l = (rank_idx - (rbv->n_rank/2));
+  limb_idx_r = (rank_idx - (rbv->n_rank/2)) + 1;
+
+  printf(".query_rank: %i, limb[limb_idx_l:%i]:%02x, limb[limb_idx_r:%i]:%02x\n",
+      query_rank,
+      limb_idx_l, rbv->limb[limb_idx_l],
+      limb_idx_r, rbv->limb[limb_idx_r]);
+
+  rank_idx = 0;
+  if (query_rank < rbv->limb[limb_idx_l])  {
+
+    u8 = rbv->bv[limb_idx_l];
+    rank_idx = 8*limb_idx_l;
+
+    printf(".(left) query_rank:%i, u8: %02x, rank_idx:%i\n",
+        query_rank, u8, rank_idx);
+
+
+  }
+  else {
+    query_rank -= rbv->limb[limb_idx_l];
+    u8 = rbv->bv[limb_idx_r];
+    rank_idx = 8*limb_idx_r;
+
+    printf(".(right) query_rank:%i, u8: %02x, rank_idx:%i\n",
+        query_rank, u8, rank_idx);
+
+
+  }
+
+  //DEBUG
+  printf("\n\n");
+
+  count = 0;
+  for (pos=0; pos<8; pos++) {
+
+    printf("..pos:%i\n", pos);
+
+    if (u8 & (1<<pos)) {
+
+      query_rank--;
+
+      printf("...u8:%02x, u8&(1<<pos:%i):%i, query_rank:%i\n",
+          u8, pos, u8&(1<<pos), query_rank);
+
+      if (query_rank == 0) { return pos+rank_idx; }
+    }
+  }
+
+  //DEBUG
+  printf("--\n\n");
+
   return -1;
 }
 

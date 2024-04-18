@@ -1,3 +1,10 @@
+// To the extent possible under law, the person who associated CC0 with
+// this file has waived all copyright and related or neighboring rights
+// to this file.
+//     
+// You should have received a copy of the CC0 legalcode along with this
+// work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
+//
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -49,6 +56,54 @@ test0_end:
 
   rbv_free(rbv);
   free(check_vec);
+  return ret_code;
+}
+
+int test_rank_idx(int n) {
+  int ret_code = 0;
+  int32_t i;
+  int32_t *check_vec, check_val;
+  int16_t x, count=0;
+  rbv_t *rbv;
+
+  if (n<0) { n = 129; }
+
+  rbv = rbv_alloc(n);
+  check_vec = (int32_t *)malloc(sizeof(int32_t)*(n+1));
+
+  // setup
+  //
+  check_vec[0]=0;
+  for (i=0; i<n; i++) {
+    if (rand()%2) {
+      rbv_val(rbv, i, 1);
+      count++;
+      check_vec[count] = i;
+    }
+  }
+
+  //DEBUG
+  rbv_print(rbv);
+
+  // check
+  //
+  for (i=1; i<count; i++) {
+    x = rbv_rank_idx(rbv,i);
+    if (check_vec[i] != x) {
+
+      printf("mismatch, i:%i, got:%i, expected:%i\n",
+          i, x, check_vec[i]);
+
+      ret_code = -1;
+      goto test_rank_idx_end;
+    }
+  }
+
+test_rank_idx_end:
+
+  free(check_vec);
+  rbv_free(rbv);
+
   return ret_code;
 }
 
@@ -253,6 +308,12 @@ int main(int argc, char **argv) {
   int16_t p;
   int8_t v;
   rbv_t *rbv;
+
+  r = test_rank_idx(-1);
+  printf("# test_rank_idx: %s\n", (r==0) ? "pass" : "ERROR");
+  if (r<0) { exit(-1); }
+
+  exit(0);
 
   r = test0();
   printf("# test0: %s\n", (r==0) ? "pass" : "ERROR");

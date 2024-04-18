@@ -1,3 +1,10 @@
+// To the extent possible under law, the person who associated CC0 with
+// this file has waived all copyright and related or neighboring rights
+// to this file.
+//     
+// You should have received a copy of the CC0 legalcode along with this
+// work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
+//
 #ifndef RANK_BITVEC_HEADER
 #define RANK_BITVEC_HEADER
 
@@ -31,7 +38,7 @@ int16_t rbv_rank_lin(rbv_t *rbv, int32_t s, int32_t e);
 int16_t rbv_rank_lt(rbv_t *rbv, int32_t p);
 int16_t rbv_rank(rbv_t *rbv, int32_t s, int32_t e);
 uint8_t rbv_val(rbv_t *rbv, int16_t pos, int8_t val);
-int16_t rbv_pos(rbv_t *rbv, int16_t idx);
+int16_t rbv_rank_idx(rbv_t *rbv, int16_t query_rank);
 
 int rbv_sanity(rbv_t *rbv);
 void rbv_print(rbv_t *rbv);
