@@ -82,9 +82,6 @@ int test_rank_idx(int n) {
     }
   }
 
-  //DEBUG
-  //rbv_print(rbv);
-
   // check
   //
   for (i=1; i<count; i++) {
