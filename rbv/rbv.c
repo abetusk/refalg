@@ -266,19 +266,19 @@ int16_t rbv_rank_idx(rbv_t *rbv, int16_t query_rank) {
   rank_idx = 0;
 
   //DEBUG
-  printf("\n----\n");
-  printf("rank_idx: query_rank:%i\n", query_rank);
+  //printf("\n----\n");
+  //printf("rank_idx: query_rank:%i\n", query_rank);
 
   while ( ((2*rank_idx)+1) < rbv->n_rank ) {
     rank_idx_l = 2*rank_idx+1;
     rank_idx_r = 2*rank_idx+2;
 
-    printf("..rank[rank_idx:%i]:%02x, rank[rank_idx_l:%i]:%02x, rank[rank_idx_r:%i]:%02x\n",
-        rank_idx, rbv->rank[rank_idx],
-        rank_idx_l, rbv->rank[rank_idx_l],
-        rank_idx_r, rbv->rank[rank_idx_r]);
+    //printf("..rank[rank_idx:%i]:%02x, rank[rank_idx_l:%i]:%02x, rank[rank_idx_r:%i]:%02x\n",
+    //    rank_idx, rbv->rank[rank_idx],
+    //    rank_idx_l, rbv->rank[rank_idx_l],
+    //    rank_idx_r, rbv->rank[rank_idx_r]);
 
-    if (query_rank < rbv->rank[rank_idx_l]) {
+    if (query_rank <= rbv->rank[rank_idx_l]) {
       rank_idx = rank_idx_l;
     }
     else {
@@ -287,24 +287,24 @@ int16_t rbv_rank_idx(rbv_t *rbv, int16_t query_rank) {
     }
   }
 
-  printf(".rank_idx:%i\n", rank_idx);
+  //printf(".query_rank:%i, rank[rank_idx:%i]0x%02x\n", query_rank, rank_idx, rbv->rank[rank_idx]);
 
-  limb_idx_l = (rank_idx - (rbv->n_rank/2));
-  limb_idx_r = (rank_idx - (rbv->n_rank/2)) + 1;
+  limb_idx_l = 2*(rank_idx - (rbv->n_rank/2));
+  limb_idx_r = 2*(rank_idx - (rbv->n_rank/2)) + 1;
 
-  printf(".query_rank: %i, limb[limb_idx_l:%i]:%02x, limb[limb_idx_r:%i]:%02x\n",
-      query_rank,
-      limb_idx_l, rbv->limb[limb_idx_l],
-      limb_idx_r, rbv->limb[limb_idx_r]);
+  //printf(".query_rank: %i, limb[limb_idx_l:%i]:%02x, limb[limb_idx_r:%i]:%02x\n",
+  //    query_rank,
+  //    limb_idx_l, rbv->limb[limb_idx_l],
+  //    limb_idx_r, rbv->limb[limb_idx_r]);
 
   rank_idx = 0;
-  if (query_rank < rbv->limb[limb_idx_l])  {
+  if (query_rank <= rbv->limb[limb_idx_l])  {
 
     u8 = rbv->bv[limb_idx_l];
     rank_idx = 8*limb_idx_l;
 
-    printf(".(left) query_rank:%i, u8: %02x, rank_idx:%i\n",
-        query_rank, u8, rank_idx);
+    //printf(".(left) query_rank:%i, u8: %02x, rank_idx:%i\n",
+    //    query_rank, u8, rank_idx);
 
 
   }
@@ -313,33 +313,33 @@ int16_t rbv_rank_idx(rbv_t *rbv, int16_t query_rank) {
     u8 = rbv->bv[limb_idx_r];
     rank_idx = 8*limb_idx_r;
 
-    printf(".(right) query_rank:%i, u8: %02x, rank_idx:%i\n",
-        query_rank, u8, rank_idx);
+    //printf(".(right) query_rank:%i, u8: %02x, rank_idx:%i\n",
+    //    query_rank, u8, rank_idx);
 
 
   }
 
   //DEBUG
-  printf("\n\n");
+  //printf("\n\n");
 
   count = 0;
   for (pos=0; pos<8; pos++) {
 
-    printf("..pos:%i\n", pos);
+    //printf("..pos:%i\n", pos);
 
     if (u8 & (1<<pos)) {
 
       query_rank--;
 
-      printf("...u8:%02x, u8&(1<<pos:%i):%i, query_rank:%i\n",
-          u8, pos, u8&(1<<pos), query_rank);
+      //printf("...u8:%02x, u8&(1<<pos:%i):%i, query_rank:%i\n",
+      //    u8, pos, u8&(1<<pos), query_rank);
 
       if (query_rank == 0) { return pos+rank_idx; }
     }
   }
 
   //DEBUG
-  printf("--\n\n");
+  //printf("--\n\n");
 
   return -1;
 }

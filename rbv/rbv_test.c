@@ -83,11 +83,15 @@ int test_rank_idx(int n) {
   }
 
   //DEBUG
-  rbv_print(rbv);
+  //rbv_print(rbv);
 
   // check
   //
   for (i=1; i<count; i++) {
+
+    //printf("###i:%i\n", i);
+    //rbv_print(rbv);
+
     x = rbv_rank_idx(rbv,i);
     if (check_vec[i] != x) {
 
@@ -97,6 +101,8 @@ int test_rank_idx(int n) {
       ret_code = -1;
       goto test_rank_idx_end;
     }
+
+    //printf("i:%i ok (%i==%i)\n", i, x, check_vec[i]);
   }
 
 test_rank_idx_end:
