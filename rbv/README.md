@@ -5,7 +5,7 @@ Small reference implementation of ranked bit vector.
 
 This stores a bit vector and supporting structure to do rank queries in $O(\lg n)$ time.
 
-Estimates on space is $\frac{3.5 \cdot n}{8}$.
+An estimate on space is $\frac{3.5 \cdot n}{8}$.
 `int16_t` are hard coded and the maximum bit vector allowable is 32768.
 
 The relevant API is:
@@ -23,6 +23,43 @@ Example
 ---
 
 ```
+#include "rbv.h"
+
+int main(int argc, char **argv) {
+  int i;
+  int16_t t, m;
+  rbv_t *rbv;
+
+  rbv = rbv_alloc(137);
+
+  for (i=0; i<137; i++) {
+    if (rand()%2) { rbv_val(rbv, i, 1); }
+    else          { rbv_val(rbv, i, 0); }
+  }
+
+  t = rbv_rank_lt(rbv, 55);
+  printf("rank %i @ %i\n", t, 55);
+
+  t = rbv_rank(rbv, 33, 55);
+  printf("rank %i from [%i,%i)\n", t, 33,55);
+
+  m = rbv_rank_lt(rbv, 137);
+  printf("total rank %i\n", m);
+
+  t = rbv_rank_idx(rbv, m/2);
+  printf("rank %i has bit position %i\n", m/2, t);
+
+  rbv_free(rbv);
+}
 ```
 
+```
+$ gcc rbv.c example.c -o example
+```
 
+License
+---
+
+CC0
+
+![cc0](../img/cc0_88x31.png)

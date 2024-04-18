@@ -8,19 +8,12 @@ SRCFILES := rbv.c
 all: lib/rbv.o
 
 lib/rbv.o: rbv.c
-	$(CC) rbv.cpp -o lib/rbv.o -c $(CFLAGS) $(OPT)
+	$(CC) rbv.c -o lib/rbv.o -c $(CFLAGS) $(OPT)
 
-tests: ravl_test.cpp ravl.cpp ravl.hpp lib/ravl.o
-	$(CC) ravl.cpp ravl_test.cpp -o ravl.test $(CFLAGS) $(OPT)
-	$(CC) ravl.cpp rlet_test.cpp -o rlet.test $(CFLAGS) $(OPT)
-
-ravl.test: ravl_test.cpp ravl.cpp ravl.hpp lib/ravl.o
-	$(CC) ravl.cpp ravl_test.cpp -o ravl.test $(CFLAGS) $(OPT)
-
-rlet.test: ravl.cpp ravl.hpp lib/ravl.o rlet.hpp rlet_test.cpp
-	$(CC) ravl.cpp rlet_test.cpp -o rlet.test $(CFLAGS) $(OPT)
+rbv.test: rbv_test.c lib/rbv.o
+	$(CC) rbv.c rbv_test.c -o rbv.test $(CFLAGS) $(OPT)
 
 .PHONY: clean
 clean:
-	rm -f ravl ravl.o lib/ravl.o ravl_test
+	rm -f rbv_test rbv.o lib/rbv.o
 
