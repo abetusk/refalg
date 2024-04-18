@@ -7,6 +7,11 @@
 
 #include "rbv.h"
 
+#define RBV_MAIN_DEBUG 1
+
+//---
+//---
+
 int test0(void) {
   int ret_code=0;
   int n= 67;
@@ -47,9 +52,12 @@ test0_end:
   return ret_code;
 }
 
+//---
+//---
+
 int test_n_p(int n, double p) {
   int ret_code=0;
-  int32_t i;
+  int32_t i, j;
   int32_t *check_vec, check_val;
   int16_t x;
 
@@ -75,17 +83,29 @@ int test_n_p(int n, double p) {
     check_vec[i+1] = check_vec[i] + check_val;
   }
 
+#ifdef RBV_MAIN_DEBUG
   rbv_print(rbv);
+#endif
 
 
 
   // check
   //
-  for (i=0; i<n; i++) {
+  for (i=0; i<=n; i++) {
     x = rbv_rank_lt(rbv,i);
     if (check_vec[i] != x) {
       ret_code = -1;
       goto test_n_p_end;
+    }
+  }
+
+  for (i=0; i<=n; i++) {
+    for (j=i; j<=n; j++) {
+      x = rbv_rank(rbv, i, j);
+      if ((check_vec[j]-check_vec[i]) != x) {
+        ret_code = -1;
+        goto test_n_p_end;
+      }
     }
   }
 
@@ -95,6 +115,10 @@ test_n_p_end:
   free(check_vec);
   return ret_code;
 }
+
+//---
+//---
+
 
 int test_n_p_prof(int n, double p, int n_it) {
   int ret_code=0;
@@ -148,6 +172,9 @@ int test_n_p_prof(int n, double p, int n_it) {
   return ret_code;
 }
 
+//---
+//---
+
 int test_n_p_rt(int n, double p, int n_it) {
   int ret_code=0;
   int16_t s,e;
@@ -194,28 +221,33 @@ int test_n_p_rt(int n, double p, int n_it) {
 
   d = (double)tv_e.tv_sec + ((double)tv_e.tv_usec)/1000000.0;
   d -= (double)tv_s.tv_sec + ((double)tv_s.tv_usec)/1000000.0;
-  printf("rank time: %f\n", d);
+  printf("rank time: %f (%i)\n", d, (int)v_a);
 
 
+  v_b = 0;
   gettimeofday(&tv_s, NULL);
   for (it=0; it<n_it; it++) {
 
     s = rand()%n;
     e = rand()%(n-s) + s;
 
-    v_a += rbv_rank_lin(rbv, s, e);
+    v_b += rbv_rank_lin(rbv, s, e);
   }
   gettimeofday(&tv_e, NULL);
 
   d = (double)tv_e.tv_sec + ((double)tv_e.tv_usec)/1000000.0;
   d -= (double)tv_s.tv_sec + ((double)tv_s.tv_usec)/1000000.0;
-  printf("lin time: %f\n", d);
+  printf("lin time: %f (%i)\n", d, (int)v_b);
 
   rbv_free(rbv);
   return ret_code;
 }
 
+//---
+//---
+
 int main(int argc, char **argv) {
+  int i;
   int it=0, n_it=1000, r;
   int n= 31, stride =4;
   int16_t p;
@@ -223,48 +255,22 @@ int main(int argc, char **argv) {
   rbv_t *rbv;
 
   r = test0();
-  printf("got:%i\n", r);
+  printf("# test0: %s\n", (r==0) ? "pass" : "ERROR");
+  if (r<0) { exit(-1); }
 
   r = test_n_p(11979,0.5);
-  printf("got:%i\n", r);
+  printf("# test_n_p(11979,0.5): %s\n", (r==0) ? "pass" : "ERROR");
+  if (r<0) { exit(-1); }
 
-  //test_n_p_rt(11979,0.5, 10000000);
-  test_n_p_prof(11979,0.5, 10000000);
+  for (i=1; i<16; i++) {
+    r = test_n_p(i,0.5);
+    printf("# test_n_p(%i,0.5): %s\n", i, (r==0) ? "pass" : "ERROR");
+    if (r<0) { exit(-1); }
+  }
 
+
+
+  //test_n_p_prof(11979,0.5, 10000000);
 
   exit(0);
-
-  if (argc > 1) {
-    n = atoi(argv[1]);
-  }
-
-  rbv = rbv_alloc(n);
-
-  for (it=0; it<n_it; it++) {
-    printf("\n\n");
-    p = rand()%n;
-    v = rand()%2;
-
-    rbv_val(rbv, p, v);
-
-    printf("[%i/%i] p:%i, v:%i\n", it, n_it, (int)p, (int)v);
-    rbv_print(rbv);
-
-    printf("sanity:%i\n", rbv_sanity(rbv));
-
-  }
-  printf("\n");
-
-  /*
-  p = 17; v = 1;
-  printf("[*] p:%i, v:%i\n", (int)p, (int)v);
-  rbv_val(rbv, p, v);
-  rbv_print(rbv);
-
-  printf("\n");
-  */
-
-
-
-  rbv_free(rbv);
 }

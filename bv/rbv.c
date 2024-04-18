@@ -140,6 +140,11 @@ int16_t rbv_rank_lt(rbv_t *rbv, int32_t p) {
           _trank2_idx;
 
 
+  if (p >= rbv->n) {
+    if (rbv->n_rank > 0) { return rbv->rank[0]; }
+    return rbv->limb[0];
+  }
+
   bv_idx = p / 8;
   limb_idx = p / 8;
   rank_idx = (rbv->n_rank/2) + (limb_idx/2);
@@ -150,49 +155,21 @@ int16_t rbv_rank_lt(rbv_t *rbv, int32_t p) {
     sum = rbv->limb[limb_idx-1];
   }
 
-  //DEBUG
-  //printf("rank_idx:%i\n", rank_idx);
-
   while (rank_idx > 0) {
-
     _trank2_idx = (rank_idx-1)/2;
-
-    //par_idx = (rank_idx-1) / 2;
     par_idx = _trank2_idx;
 
-    //DEBUG
-    //printf("..rank_idx:%i, par_idx:%i\n", rank_idx, par_idx);
-
-    //if (((2*par_idx)+1) != rank_idx) {
     if ((rank_idx & 1) == 0) {
-
-      //DEBUG
-      //printf("...rank[par:%i]:%i - rank[idx:%i]:%i (prvsum:%i)\n",
-      //    par_idx, rbv->rank[par_idx], rank_idx, rbv->rank[rank_idx], sum);
-
-      //sum += rbv->rank[par_idx] - rbv->rank[rank_idx];
       sum += rank[par_idx] - rank[rank_idx];
     }
 
-    //rank_idx = (rank_idx-1)/2;
     rank_idx = _trank2_idx;
   }
 
   rem = p%8;
   if (rem != 0) {
-
     mask = ((uint8_t)0xff) >> ((uint8_t)(8-rem)) ;
     u8 = rbv->bv[ bv_idx ];
-
-
-    //printf(">>lookup[%i] %i\n",
-    //    mask & u8,
-    //    rbv->lookup[ mask & u8 ]);
-
-
-    //printf("  rbv->bv[%i]: %02x, masked:%02x\n",
-    //    bv_idx, u8, u8&mask);
-
     sum += rbv->lookup[ u8 & mask ];
   }
 
@@ -261,7 +238,9 @@ uint8_t rbv_val(rbv_t *rbv, int16_t pos, int8_t val) {
     rank_idx--;
     rank_idx /= 2;
   }
-  rbv->rank[rank_idx] += dv;
+  if (rank_idx < rbv->n_rank) {
+    rbv->rank[rank_idx] += dv;
+  }
 
   return val;
 }
