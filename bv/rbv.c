@@ -109,6 +109,25 @@ void rbv_free(rbv_t *rbv) {
   free(rbv);
 }
 
+int16_t rbv_rank_lin(rbv_t *rbv, int32_t s, int32_t e) {
+  uint8_t rem, mask, u8;
+  int32_t i;
+  int16_t bv_idx,
+          limb_idx,
+          limb_end_idx,
+          sum=0;
+
+  limb_idx = s / 8;
+  limb_end_idx = e / 8;
+
+
+  for (i=limb_idx; i<limb_end_idx; i++) {
+    sum += rbv->limb[i];
+  }
+
+  return sum;
+}
+
 int16_t rbv_rank_lt(rbv_t *rbv, int32_t p) {
   uint8_t rem, mask, u8;
   int16_t bv_idx,
@@ -117,9 +136,15 @@ int16_t rbv_rank_lt(rbv_t *rbv, int32_t p) {
           par_idx;
   int16_t sum=0;
 
+  int16_t *rank,
+          _trank2_idx;
+
+
   bv_idx = p / 8;
   limb_idx = p / 8;
   rank_idx = (rbv->n_rank/2) + (limb_idx/2);
+
+  rank = rbv->rank;
 
   if ((limb_idx%2) == 1) {
     sum = rbv->limb[limb_idx-1];
@@ -129,21 +154,28 @@ int16_t rbv_rank_lt(rbv_t *rbv, int32_t p) {
   //printf("rank_idx:%i\n", rank_idx);
 
   while (rank_idx > 0) {
-    par_idx = (rank_idx-1) / 2;
+
+    _trank2_idx = (rank_idx-1)/2;
+
+    //par_idx = (rank_idx-1) / 2;
+    par_idx = _trank2_idx;
 
     //DEBUG
     //printf("..rank_idx:%i, par_idx:%i\n", rank_idx, par_idx);
 
-    if (((2*par_idx)+1) != rank_idx) {
+    //if (((2*par_idx)+1) != rank_idx) {
+    if ((rank_idx & 1) == 0) {
 
       //DEBUG
       //printf("...rank[par:%i]:%i - rank[idx:%i]:%i (prvsum:%i)\n",
       //    par_idx, rbv->rank[par_idx], rank_idx, rbv->rank[rank_idx], sum);
 
-      sum += rbv->rank[par_idx] - rbv->rank[rank_idx];
+      //sum += rbv->rank[par_idx] - rbv->rank[rank_idx];
+      sum += rank[par_idx] - rank[rank_idx];
     }
 
-    rank_idx = (rank_idx-1)/2;
+    //rank_idx = (rank_idx-1)/2;
+    rank_idx = _trank2_idx;
   }
 
   rem = p%8;

@@ -3,70 +3,215 @@
 #include <string.h>
 #include <stdint.h>
 
+#include <sys/time.h>
+
 #include "rbv.h"
 
 int test0(void) {
   int ret_code=0;
+  int n= 67;
   int32_t i;
-  int it=0, n_it=1000;
-  int n= 67, stride =4;
-  int16_t p;
-  int8_t v;
-
+  int32_t *check_vec, check_val;
   int16_t x;
-
-  int32_t *check_vec, prv, check_val;
-
   rbv_t *rbv;
 
   rbv = rbv_alloc(n);
-
   check_vec = (int32_t *)malloc(sizeof(int32_t)*(n+1));
 
-
-  prv = 0;
+  // setup
+  //
   check_vec[0]=0;
   for (i=0; i<n; i++) {
     check_val = 0;
     if (rand()%2) {
       rbv_val(rbv, i, 1);
-
       check_val = 1;
     }
     check_vec[i+1] = check_vec[i] + check_val;
   }
-  //rbv_print(rbv);
 
+  // check
+  //
   for (i=0; i<n; i++) {
-
     x = rbv_rank_lt(rbv,i);
-
-    //DEBUG
-    //printf("[%i] check:%i, rank_lt:%i\n",
-    //    i, check_vec[i], x);
-
     if (check_vec[i] != x) {
       ret_code = -1;
       goto test0_end;
     }
   }
 
-
-  /*
-  x = rbv_rank_lt(rbv, 37);
-  printf("got: %i\n", (int)x);
-
-  x = rbv_rank_lt(rbv, 40);
-  printf("got: %i\n", (int)x);
-
-  x = rbv_rank_lt(rbv, 48);
-  printf("got: %i\n", (int)x);
-  */
-
 test0_end:
 
   rbv_free(rbv);
   free(check_vec);
+  return ret_code;
+}
+
+int test_n_p(int n, double p) {
+  int ret_code=0;
+  int32_t i;
+  int32_t *check_vec, check_val;
+  int16_t x;
+
+  double q;
+  rbv_t *rbv;
+
+  rbv = rbv_alloc(n);
+  check_vec = (int32_t *)malloc(sizeof(int32_t)*(n+1));
+
+  // setup
+  //
+  check_vec[0]=0;
+  for (i=0; i<n; i++) {
+    check_val = 0;
+
+    q = rand();
+    q /= (double)(RAND_MAX + 1.0);
+
+    if (q < p) {
+      rbv_val(rbv, i, 1);
+      check_val = 1;
+    }
+    check_vec[i+1] = check_vec[i] + check_val;
+  }
+
+  rbv_print(rbv);
+
+
+
+  // check
+  //
+  for (i=0; i<n; i++) {
+    x = rbv_rank_lt(rbv,i);
+    if (check_vec[i] != x) {
+      ret_code = -1;
+      goto test_n_p_end;
+    }
+  }
+
+test_n_p_end:
+
+  rbv_free(rbv);
+  free(check_vec);
+  return ret_code;
+}
+
+int test_n_p_prof(int n, double p, int n_it) {
+  int ret_code=0;
+  int16_t s,e;
+  int32_t i;
+  int16_t x;
+  double q;
+
+  int64_t v_a, v_b, it;
+  double d;
+
+  struct timeval tv_s, tv_e;
+
+  rbv_t *rbv;
+
+  rbv = rbv_alloc(n);
+
+  // setup
+  //
+  for (i=0; i<n; i++) {
+
+    q = rand();
+    q /= (double)(RAND_MAX + 1.0);
+
+    if (q < p) {
+      rbv_val(rbv, i, 1);
+    }
+  }
+
+  rbv_print(rbv);
+
+  // timing
+  //
+  v_a=0;
+
+  gettimeofday(&tv_s, NULL);
+  for (it=0; it<n_it; it++) {
+
+    s = rand()%n;
+    e = rand()%(n-s) + s;
+
+    v_a += rbv_rank(rbv, s, e);
+  }
+  gettimeofday(&tv_e, NULL);
+
+  d = (double)tv_e.tv_sec + ((double)tv_e.tv_usec)/1000000.0;
+  d -= (double)tv_s.tv_sec + ((double)tv_s.tv_usec)/1000000.0;
+  printf("rank time: %f\n", d);
+
+  rbv_free(rbv);
+  return ret_code;
+}
+
+int test_n_p_rt(int n, double p, int n_it) {
+  int ret_code=0;
+  int16_t s,e;
+  int32_t i;
+  int16_t x;
+  double q;
+
+  int64_t v_a, v_b, it;
+  double d;
+
+  struct timeval tv_s, tv_e;
+
+  rbv_t *rbv;
+
+  rbv = rbv_alloc(n);
+
+  // setup
+  //
+  for (i=0; i<n; i++) {
+
+    q = rand();
+    q /= (double)(RAND_MAX + 1.0);
+
+    if (q < p) {
+      rbv_val(rbv, i, 1);
+    }
+  }
+
+  rbv_print(rbv);
+
+  // timing
+  //
+  v_a=0;
+
+  gettimeofday(&tv_s, NULL);
+  for (it=0; it<n_it; it++) {
+
+    s = rand()%n;
+    e = rand()%(n-s) + s;
+
+    v_a += rbv_rank(rbv, s, e);
+  }
+  gettimeofday(&tv_e, NULL);
+
+  d = (double)tv_e.tv_sec + ((double)tv_e.tv_usec)/1000000.0;
+  d -= (double)tv_s.tv_sec + ((double)tv_s.tv_usec)/1000000.0;
+  printf("rank time: %f\n", d);
+
+
+  gettimeofday(&tv_s, NULL);
+  for (it=0; it<n_it; it++) {
+
+    s = rand()%n;
+    e = rand()%(n-s) + s;
+
+    v_a += rbv_rank_lin(rbv, s, e);
+  }
+  gettimeofday(&tv_e, NULL);
+
+  d = (double)tv_e.tv_sec + ((double)tv_e.tv_usec)/1000000.0;
+  d -= (double)tv_s.tv_sec + ((double)tv_s.tv_usec)/1000000.0;
+  printf("lin time: %f\n", d);
+
+  rbv_free(rbv);
   return ret_code;
 }
 
@@ -79,6 +224,14 @@ int main(int argc, char **argv) {
 
   r = test0();
   printf("got:%i\n", r);
+
+  r = test_n_p(11979,0.5);
+  printf("got:%i\n", r);
+
+  //test_n_p_rt(11979,0.5, 10000000);
+  test_n_p_prof(11979,0.5, 10000000);
+
+
   exit(0);
 
   if (argc > 1) {
