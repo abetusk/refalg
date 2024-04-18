@@ -60,6 +60,5 @@ $ gcc rbv.c example.c -o example
 License
 ---
 
-CC0
+![cc0](../img/cc0_88x31.png) Creative Commons 0 (CC0) 
 
-![cc0](../img/cc0_88x31.png)
