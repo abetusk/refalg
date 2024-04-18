@@ -14,7 +14,7 @@
 
 #include "rbv.h"
 
-#define RBV_MAIN_DEBUG 1
+//#define RBV_MAIN_DEBUG 1
 
 //---
 //---
@@ -206,7 +206,7 @@ int test_n_p_prof(int n, double p, int n_it) {
     }
   }
 
-  rbv_print(rbv);
+  //rbv_print(rbv);
 
   // timing
   //
@@ -261,7 +261,7 @@ int test_n_p_rt(int n, double p, int n_it) {
     }
   }
 
-  rbv_print(rbv);
+  //rbv_print(rbv);
 
   // timing
   //
@@ -312,12 +312,6 @@ int main(int argc, char **argv) {
   int8_t v;
   rbv_t *rbv;
 
-  r = test_rank_idx(-1);
-  printf("# test_rank_idx: %s\n", (r==0) ? "pass" : "ERROR");
-  if (r<0) { exit(-1); }
-
-  exit(0);
-
   r = test0();
   printf("# test0: %s\n", (r==0) ? "pass" : "ERROR");
   if (r<0) { exit(-1); }
@@ -332,6 +326,10 @@ int main(int argc, char **argv) {
     if (r<0) { exit(-1); }
   }
 
+
+  r = test_rank_idx(-1);
+  printf("# test_rank_idx: %s\n", (r==0) ? "pass" : "ERROR");
+  if (r<0) { exit(-1); }
 
 
   //test_n_p_prof(11979,0.5, 10000000);
