@@ -46,6 +46,9 @@ int main(int argc, char **argv) {
   m = rbv_rank_lt(rbv, 137);
   printf("total rank %i\n", m);
 
+  t = rbv_val(rbv, 55, -1);
+  printf("bit is %i @ position %i\n", t, 55);
+
   t = rbv_rank_idx(rbv, m/2);
   printf("rank %i has bit position %i\n", m/2, t);
 
@@ -56,6 +59,27 @@ int main(int argc, char **argv) {
 ```
 $ gcc rbv.c example.c -o example
 ```
+
+Implementation Details
+---
+
+There are three main structures:
+
+* `bv` : the bit vector holding the underlying data, stored as `uint8_t`
+* `limb`: sum of  a `stride`s worth of bits, currently hard coded to `8` (1 byte of `bv` per limb)
+* `rank`: a heap-like tree that holds the rank of the sub tree below it
+
+`limb` can be regarded as the leaf node to the `rank` heap-like tree but `limb` has no `0` padding at the end,
+whereas the `rank` array is of size $2^{s}-1$ and padded with zeros appropriately.
+
+Setting bits in `bv` results in the `limb` being updated and tracing the updating up the `rank` array
+until it reaches the root.
+
+Rank queries are performed by descending the `rank` array-tree, keeping appropriate state as the descent
+occurs.
+When getting to the end, a stride scan of the bit vector element is done to find the last position.
+
+`rbv_rank()` is implemented as two calls to `rbv_rank_lt()` with the appropriate bounds.
 
 License
 ---

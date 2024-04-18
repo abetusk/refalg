@@ -19,6 +19,46 @@
 //---
 //---
 
+int test_bitcheck(int n) {
+  int ret_code=0;
+  int32_t i;
+  int32_t *check_vec;
+  int16_t x;
+
+  rbv_t *rbv;
+
+  if (n<0) { n = 67; }
+
+  rbv = rbv_alloc(n);
+  check_vec = (int *)malloc(sizeof(int)*n);
+
+  for (i=0; i<n; i++) {
+    if (rand()%2) {
+      rbv_val(rbv, i, 1);
+      check_vec[i] = 1;
+    }
+    else {
+      rbv_val(rbv, i, 0);
+      check_vec[i] = 0;
+    }
+  }
+
+  for (i=0; i<n; i++) {
+    if (check_vec[i] != rbv_val(rbv, i, -1)) {
+      ret_code = -1;
+      goto test_bitcheck_end;
+    }
+  }
+
+
+test_bitcheck_end:
+
+  free(check_vec);
+  rbv_free(rbv);
+
+  return ret_code;
+}
+
 int test0(void) {
   int ret_code=0;
   int n= 67;
@@ -316,11 +356,15 @@ int main(int argc, char **argv) {
   printf("# test0: %s\n", (r==0) ? "pass" : "ERROR");
   if (r<0) { exit(-1); }
 
+  r = test_bitcheck(-1);
+  printf("# test_bitcheck: %s\n", (r==0) ? "pass" : "ERROR");
+  if (r<0) { exit(-1); }
+
   r = test_n_p(11979,0.5);
   printf("# test_n_p(11979,0.5): %s\n", (r==0) ? "pass" : "ERROR");
   if (r<0) { exit(-1); }
 
-  for (i=1; i<16; i++) {
+  for (i=1; i<33; i++) {
     r = test_n_p(i,0.5);
     printf("# test_n_p(%i,0.5): %s\n", i, (r==0) ? "pass" : "ERROR");
     if (r<0) { exit(-1); }
