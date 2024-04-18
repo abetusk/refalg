@@ -66,47 +66,6 @@ rbv_t *rbv_alloc(int16_t n) {
   return rbv;
 }
 
-/*
-rbv_t *rbv_alloc(int16_t n, uint8_t stride) {
-  int32_t i;
-  rbv_t *rbv;
-
-  rbv = (rbv_t *)malloc(sizeof(rbv_t));
-
-  rbv->n = n;
-  rbv->stride = stride;
-
-  rbv->n_bv = (int16_t)(n/8);
-  if ((n%8) != 0) { rbv->n_bv++; }
-
-  rbv->n_limb = n/stride;
-  if ((n%stride) != 0) { rbv->n_limb++; }
-
-  rbv->n_rank = 1;
-  for (i=0; i<15; i++) {
-    if (rbv->n_rank > rbv->n_limb) { break; }
-    rbv->n_rank *= 2;
-  }
-  rbv->n_rank--;
-  
-  rbv->bv = (uint8_t *)malloc(sizeof(uint8_t)*(rbv->n_bv));
-  rbv->limb = (int16_t *)malloc(sizeof(int16_t)*(rbv->n_limb));
-  rbv->rank = (int16_t *)malloc(sizeof(int16_t)*(rbv->n_rank));
-
-  memset(rbv->bv, 0, sizeof(uint8_t)*(rbv->n_bv));
-  memset(rbv->limb, 0, sizeof(uint16_t)*(rbv->n_limb));
-  memset(rbv->rank, 0, sizeof(uint16_t)*(rbv->n_rank));
-
-  rbv->lookup = (int16_t *)malloc(sizeof(int16_t)*(1<<stride));
-
-  for (i=0; i<(1<<stride); i++) {
-    rbv->lookup[i] = _popcount8((uint8_t)i);
-  }
-
-  return rbv;
-}
-*/
-
 void rbv_free(rbv_t *rbv) {
   if (!rbv) { return; }
   if (rbv->bv) { free(rbv->bv); }
@@ -422,19 +381,3 @@ void rbv_print(rbv_t *rbv) {
   printf("\n");
 }
 
-//----
-//----
-//----
-//----
-
-/*
-int main(int argc, char **argv) {
-  rbv_t *rbv;
-
-  rbv = rbv_alloc(17, 4);
-
-  rbv_print(rbv);
-
-  rbv_free(rbv);
-}
-*/
