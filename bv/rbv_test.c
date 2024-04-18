@@ -6,6 +6,7 @@
 #include "rbv.h"
 
 int test0(void) {
+  int ret_code=0;
   int32_t i;
   int it=0, n_it=1000;
   int n= 67, stride =4;
@@ -14,33 +15,70 @@ int test0(void) {
 
   int16_t x;
 
+  int32_t *check_vec, prv, check_val;
+
   rbv_t *rbv;
 
   rbv = rbv_alloc(n);
 
+  check_vec = (int32_t *)malloc(sizeof(int32_t)*(n+1));
+
+
+  prv = 0;
+  check_vec[0]=0;
   for (i=0; i<n; i++) {
+    check_val = 0;
     if (rand()%2) {
       rbv_val(rbv, i, 1);
+
+      check_val = 1;
+    }
+    check_vec[i+1] = check_vec[i] + check_val;
+  }
+  //rbv_print(rbv);
+
+  for (i=0; i<n; i++) {
+
+    x = rbv_rank_lt(rbv,i);
+
+    //DEBUG
+    //printf("[%i] check:%i, rank_lt:%i\n",
+    //    i, check_vec[i], x);
+
+    if (check_vec[i] != x) {
+      ret_code = -1;
+      goto test0_end;
     }
   }
-  rbv_print(rbv);
 
-  x = rbv_rank(rbv, 17, 57);
 
+  /*
+  x = rbv_rank_lt(rbv, 37);
   printf("got: %i\n", (int)x);
 
+  x = rbv_rank_lt(rbv, 40);
+  printf("got: %i\n", (int)x);
+
+  x = rbv_rank_lt(rbv, 48);
+  printf("got: %i\n", (int)x);
+  */
+
+test0_end:
+
   rbv_free(rbv);
-  return 0;
+  free(check_vec);
+  return ret_code;
 }
 
 int main(int argc, char **argv) {
-  int it=0, n_it=1000;
+  int it=0, n_it=1000, r;
   int n= 31, stride =4;
   int16_t p;
   int8_t v;
   rbv_t *rbv;
 
-  test0();
+  r = test0();
+  printf("got:%i\n", r);
   exit(0);
 
   if (argc > 1) {

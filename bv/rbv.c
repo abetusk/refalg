@@ -109,158 +109,75 @@ void rbv_free(rbv_t *rbv) {
   free(rbv);
 }
 
+int16_t rbv_rank_lt(rbv_t *rbv, int32_t p) {
+  uint8_t rem, mask, u8;
+  int16_t bv_idx,
+          limb_idx,
+          rank_idx,
+          par_idx;
+  int16_t sum=0;
+
+  bv_idx = p / 8;
+  limb_idx = p / 8;
+  rank_idx = (rbv->n_rank/2) + (limb_idx/2);
+
+  if ((limb_idx%2) == 1) {
+    sum = rbv->limb[limb_idx-1];
+  }
+
+  //DEBUG
+  //printf("rank_idx:%i\n", rank_idx);
+
+  while (rank_idx > 0) {
+    par_idx = (rank_idx-1) / 2;
+
+    //DEBUG
+    //printf("..rank_idx:%i, par_idx:%i\n", rank_idx, par_idx);
+
+    if (((2*par_idx)+1) != rank_idx) {
+
+      //DEBUG
+      //printf("...rank[par:%i]:%i - rank[idx:%i]:%i (prvsum:%i)\n",
+      //    par_idx, rbv->rank[par_idx], rank_idx, rbv->rank[rank_idx], sum);
+
+      sum += rbv->rank[par_idx] - rbv->rank[rank_idx];
+    }
+
+    rank_idx = (rank_idx-1)/2;
+  }
+
+  rem = p%8;
+  if (rem != 0) {
+
+    mask = ((uint8_t)0xff) >> ((uint8_t)(8-rem)) ;
+    u8 = rbv->bv[ bv_idx ];
+
+
+    //printf(">>lookup[%i] %i\n",
+    //    mask & u8,
+    //    rbv->lookup[ mask & u8 ]);
+
+
+    //printf("  rbv->bv[%i]: %02x, masked:%02x\n",
+    //    bv_idx, u8, u8&mask);
+
+    sum += rbv->lookup[ u8 & mask ];
+  }
+
+  return sum;
+}
+
 // return population count from start to end, non inclusive
 //
 // returns -1 on error
 //
 int16_t rbv_rank(rbv_t *rbv, int32_t s, int32_t e) {
-  int32_t i;
-  int16_t s_limb_idx, s_limb_off,
-          e_limb_idx, e_limb_off;
+  int16_t s_s, s_e;
 
-  int16_t s_limb_pos, e_limb_pos;
+  s_s = rbv_rank_lt(rbv, s);
+  s_e = rbv_rank_lt(rbv, e);
 
-  int16_t s_idx, s_off,
-          e_idx, e_off,
-          par_idx;
-
-  int16_t l_rank_idx, r_rank_idx,
-          l_limb_idx, r_limb_idx,
-          tot_l, tot_r;
-
-  int16_t s_neg_beg = 0,
-          e_neg_end = 0,
-          s_h, e_h,
-          t_s_h, t_e_h,
-          t_s, t_e,
-          t;
-
-  int16_t s_sum, e_sum;
-
-  int16_t s_l = 0,
-          s_r = 0,
-          e_l = 0,
-          e_r = 0;
-
-  s_limb_idx = s / 8;
-  s_limb_off = s % 8;
-  s_l = _popcount8_se(rbv->bv[s_limb_idx], 0, s_limb_off);
-  s_r = _popcount8_se(rbv->bv[s_limb_idx], s_limb_off, 8);
-
-  e_limb_idx = e / 8;
-  e_limb_off = e % 8;
-  e_l = _popcount8_se(rbv->bv[e_limb_idx], 0, e_limb_off);
-  e_r = _popcount8_se(rbv->bv[e_limb_idx], e_limb_off, 8);
-
-  if      (s_limb_idx == e_limb_idx)  { return s_r-e_r; }
-  else if ((e-s) < 8)                 { return s_r+e_l; }
-
-  //DEBUG
-  printf("\n---\n");
-  printf("s:%i, e:%i\n", s, e);
-  printf("s_limb_idx: %i (ofst:%i), e_limb_idx:%i (ofst:%i)\n",
-      s_limb_idx, s_limb_off, e_limb_idx, e_limb_off);
-
-  s_neg_beg = s_l;
-  e_neg_end = e_r;
-
-  s_idx = (rbv->n_rank/2)  + (s_limb_idx/2);
-  e_idx = (rbv->n_rank/2)  + (e_limb_idx/2);
-
-  s_sum = 0;
-  e_sum = rbv->limb[e_limb_idx];
-
-  // keep running total for left till index.
-  // if the node is a right child, we want
-  // to subtract the right childs value
-  // from the parent to only include the
-  // left sum.
-  //
-  while (s_idx != e_idx) {
-
-    par_idx = s_idx / 2;
-    if (((2*par_idx)+1) != s_idx) {
-      s_sum += rbv->rank[par_idx] - rbv->rank[s_idx];
-    }
-
-    // fucking dammit, this fucking thing needs more fiddling
-    // WIP! DOES NOT WORK!!!!
-    //
-    par_idx = s_idx / 2;
-    if (((2*par_idx)+1) != e_idx) {
-      if (e_idx < rbv->n_rank) {
-
-        printf("  rank[par:%i] - (rank[e_idx:%i] - e_sum:%i): %i\n",
-            rbv->rank[par_idx], rbv->rank[e_idx], e_sum, 
-            (rbv->rank[par_idx] - (rbv->rank[e_idx] - e_sum)) );
-
-        e_sum = (rbv->rank[par_idx] - (rbv->rank[e_idx] - e_sum));
-        //e_sum += (rbv->rank[par_idx] - rbv->rank[e_idx]);
-      }
-    }
-
-    printf("s_idx:%i, e_idx:%i, s_sum:%i, e_sum:%i\n",
-        s_idx, e_idx,
-        s_sum, e_sum);
-
-    s_idx = (s_idx-1)/2;
-    e_idx = (e_idx-1)/2;
-  }
-
-  printf("s_sum:%i, e_sum:%i, fin sum? %i\n",
-      s_sum, e_sum, e_sum - s_sum);
-
-  return -1;
-
-
-  while ((s_idx != e_idx) &&
-         (s_idx > 0) &&
-         (e_idx > 0)) {
-
-    par_idx = s_idx / 2;
-    if ((2*par_idx) != s_idx) {
-      s_sum += rbv->rank[par_idx] - rbv->rank[s_idx];
-    }
-
-    par_idx = e_idx / 2;
-    if ((2*par_idx) != e_idx) {
-      e_sum += rbv->rank[par_idx] - rbv->rank[e_idx];
-    }
-
-    s_idx /= 2;
-    e_idx /= 2;
-  }
-
-
-
-
-  // get s height,
-  // get e height,
-  // bring lower of two to same height
-  // while not same node:
-  //   go up tree
-  //
-  // going up tree, keep running s and e
-  // totals:
-  //
-  // if (s left child parent):
-  //   tot += val(parent) - val(s)
-  // tot = (s left child parent) ? 
-  //
-
-  //t = 
-  //for (
-
-  l_rank_idx = rbv->n_rank/2;
-  //l_rank_idx += l_limb_idx/2;
-  //while (rank_idx>0) { }
-
-
-  //DEBUG
-  printf("\n");
-
-
-  return -1;
+  return s_e - s_s;
 }
 
 // If val = {0,1}, update bit vector position with value val

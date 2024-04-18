@@ -26,6 +26,7 @@ typedef struct rbv16_s8_type rbv_t;
 rbv_t *rbv_alloc(int16_t n);
 void rbv_free(rbv_t *rbv);
 
+int16_t rbv_rank_lt(rbv_t *rbv, int32_t p);
 int16_t rbv_rank(rbv_t *rbv, int32_t s, int32_t e);
 uint8_t rbv_val(rbv_t *rbv, int16_t pos, int8_t val);
 int16_t rbv_pos(rbv_t *rbv, int16_t idx);
